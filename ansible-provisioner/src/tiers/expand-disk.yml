@@ -1,0 +1,42 @@
+---
+- name: Resize Elasticsearch node disks to full size
+  hosts: "{{env}}"
+  become: yes
+  tasks:
+    - name: Ensure growpart is installed
+      package:
+        name: cloud-guest-utils
+        state: present
+
+    - name: Get current partition table
+      command: lsblk -nrpo NAME,SIZE,TYPE /dev/vda
+      register: lsblk_info
+
+    - name: Debug current disk layout
+      debug:
+        var: lsblk_info.stdout_lines
+
+    - name: Grow last partition (/dev/vda3) to fill disk
+      command: growpart /dev/vda 3
+      register: growpart_out
+      failed_when: growpart_out.rc not in [0,1] # 1 means already grown
+      changed_when: growpart_out.rc == 0
+
+    - name: Resize physical volume on /dev/vda3
+      command: pvresize /dev/vda3
+      register: pvresize_out
+      failed_when: pvresize_out.rc not in [0,5] # 5 means already resized
+      changed_when: pvresize_out.rc == 0
+
+    - name: Extend root LV to use all free space
+      command: lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
+      register: lvextend_out
+      failed_when: lvextend_out.rc not in [0,5]
+      changed_when: lvextend_out.rc == 0
+
+    - name: Show final disk usage
+      command: lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINT
+      register: lsblk_final
+
+    - debug:
+        var: lsblk_final.stdout_lines

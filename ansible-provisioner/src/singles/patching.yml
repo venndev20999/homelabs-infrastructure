@@ -1,0 +1,62 @@
+---
+- name: System OS Patching
+  hosts: "{{ env | default('all') }}"
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Copy user .bashrc
+      copy:
+        src: "../tiers/files/.bashrc"
+        dest: "~/.bashrc"
+        mode: 0644
+
+    - name: Copy user .bash_profile
+      copy:
+        src: "../tiers/files/.bash_profile"
+        dest: "~/.bash_profile"
+        mode: 0644
+
+    - name: Ensure /etc/hostname is correct with inventory_hostname
+      copy:
+        content: "{{ inventory_hostname }}\n"
+        dest: "/etc/hostname"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Set hostname
+      command: hostname {{ inventory_hostname }}
+      register: hostname_status
+
+    - name: Ensure /etc/hosts is correct with inventory_hostname
+      lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1'
+        line: "127.0.1.1 {{ inventory_hostname }}"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_facts['distribution'] == "Ubuntu"
+
+    - name: Update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_upgrade
+      when: ansible_facts['distribution'] == "Ubuntu"
+
+    - name: Remove unused dependencies
+      apt:
+        autoremove: yes
+      when: ansible_facts['distribution'] == "Ubuntu"
+
+    - name: Clean up unused packages from the cache
+      apt:
+        autoclean: yes
+      when: ansible_facts['distribution'] == "Ubuntu"

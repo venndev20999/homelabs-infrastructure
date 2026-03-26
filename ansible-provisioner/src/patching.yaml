@@ -1,0 +1,13 @@
+---
+- name: Update and upgrade all servers
+  hosts: "{{ env }}"
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist

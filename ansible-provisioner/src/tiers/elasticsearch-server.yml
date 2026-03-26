@@ -1,0 +1,11 @@
+---
+- hosts: "{{ env }}"
+  become: yes
+  become_user: root
+  vars_files:
+    - ../vars/elasticsearch/local.yml
+  vars:
+  tasks:
+    - include: ../modules/elasticsearch/main.yml
+  handlers:
+    - include: ../modules/elasticsearch/handlers.yml

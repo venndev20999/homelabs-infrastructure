@@ -1,0 +1,19 @@
+---
+- hosts: "{{ env }}"
+  pre_tasks:
+    - name: Install boto
+      raw: apt -y install python-boto
+      when: ansible_distribution == "Ubuntu"
+      changed_when: False
+    - setup: # aka gather_facts
+  become: yes
+  become_user: root
+  vars_files:
+    - ../vars/common/volumes.yml
+  vars:
+    - aws_access_key: x
+    - aws_secret_key: y
+  strategy: free
+
+  tasks:
+    - include: ../modules/core/mount/main.yml
