@@ -22,23 +22,23 @@
     mode: 0644
 
 # ── Hostname ──────────────────────────────────────────────────────────────────
-- name: "[common] Ensure /etc/hostname matches inventory_hostname"
+- name: "[common] Ensure /etc/hostname matches target_hostname"
   copy:
-    content: "{{ inventory_hostname }}\n"
+    content: "{{ target_hostname | default(inventory_hostname) }}\n"
     dest: "/etc/hostname"
     owner: root
     group: root
     mode: 0644
 
 - name: "[common] Apply hostname immediately"
-  command: hostname {{ inventory_hostname }}
+  command: hostname "{{ target_hostname | default(inventory_hostname) }}"
   register: hostname_status
 
-- name: "[common] Ensure /etc/hosts 127.0.1.1 matches inventory_hostname"
+- name: "[common] Ensure /etc/hosts 127.0.1.1 matches target_hostname"
   lineinfile:
     path: /etc/hosts
     regexp: '^127\.0\.1\.1'
-    line: "127.0.1.1 {{ inventory_hostname }}"
+    line: "127.0.1.1 {{ target_hostname | default(inventory_hostname) }}"
     owner: root
     group: root
     mode: 0644

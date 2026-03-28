@@ -1,0 +1,56 @@
+---
+# singles/create-vm-server.yml
+# Provisions general VMs by cloning a base Ubuntu 24.04 image, then configuring them.
+#
+# Usage:
+#   ansible-playbook -i inventory.ini singles/create-vm-server.yml -e vm_prefix=kafka-test -e vm_ip=192.168.122.250
+
+# 1. First Play: Run on localserver to clone and start the VM
+- name: "Provision VM on hypervisor"
+  hosts: localserver
+  gather_facts: no
+  become: yes
+
+  vars_files:
+    - ../vars/vm.yml
+
+  vars:
+    all_nodes: "{{ vm_workers }}"
+    vm_network: "default"
+
+  tasks:
+    - import_tasks: ../modules/vm/main.yml
+
+    - name: "Dynamically add the new VM to Ansible inventory"
+      add_host:
+        name: "{{ item.name }}"
+        ansible_host: "{{ item.ip }}"
+        ansible_user: venn
+        groups: newly_created_vms
+      loop: "{{ vm_workers }}"
+
+# 2. Second Play: Run SSH tasks ON THE NEW VM directly
+- name: "Configure the newly created VM"
+  hosts: newly_created_vms
+  gather_facts: no
+  become: yes
+
+  # Provide target_hostname so common.yml knows exactly what hostname to set explicitly
+  vars_files:
+    - ../vars/vm.yml
+  vars:
+    # Use the name defined in vars/vm.yml directly, as inventory_hostname could technically differ during runtime aliases
+    target_hostname: "{{ vm_workers[0].name }}"
+
+  tasks:
+    - name: "Wait for SSH to become available on the new VM"
+      wait_for_connection:
+        delay: 5
+        timeout: 120
+
+    - name: "Gather facts now that SSH is available"
+      setup:
+
+    # These now execute securely INSIDE the new VM, not on the localserver
+    - import_tasks: ../modules/common/main.yml
+    - import_tasks: ../modules/patching/main.yml

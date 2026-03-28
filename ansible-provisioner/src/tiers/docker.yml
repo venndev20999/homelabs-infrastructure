@@ -1,6 +1,0 @@
----
-- hosts: "docker"
-  become: yes
-  become_user: root
-  tasks:
-    - import_tasks: ../modules/docker/main.yml

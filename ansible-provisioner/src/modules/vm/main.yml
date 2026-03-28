@@ -1,9 +1,8 @@
-- name: "[preflight] Check virt-install is available"
-  command: which virt-install
+- name: "[preflight] Check virt-clone is available"
+  command: which virt-clone
   changed_when: false
-  register: virt_check
 
-# ── Create VMs ─────────────────────────────────────────────────────────
+# ── Clone VMs ─────────────────────────────────────────────────────────
 - name: "[vm] Check if VM already exists"
   command: virsh dominfo "{{ item.name }}"
   loop: "{{ all_nodes }}"
@@ -13,39 +12,41 @@
   ignore_errors: yes
   changed_when: false
 
-- name: "[vm] Create VM with virt-install"
+- name: "[vm] Clone VM from base-server-ubuntu-24"
   shell: |
-    virt-install \
+    virt-clone \
+      --original base-server-ubuntu-24 \
       --name "{{ item.item.name }}" \
-      --memory {{ item.item.memory }} \
-      --vcpus {{ item.item.vcpus }} \
-      --disk path="{{ talos_disk_dir }}/{{ item.item.name }}.qcow2",size={{ item.item.disk_size }},format=qcow2 \
-      --cdrom "{{ talos_iso_path }}" \
-      --os-variant unknown \
-      --network network="{{ talos_network }}",model=virtio \
-      --graphics vnc,listen=0.0.0.0,port=-1 \
-      --graphics spice \
-      --video qxl \
-      --console pty,target_type=serial \
-      --noautoconsole
+      --auto-clone
   loop: "{{ vm_exists.results }}"
   loop_control:
     label: "{{ item.item.name }}"
-  when: item.rc != 0   # only create if VM does NOT exist
+  when: item.rc != 0   # only clone if VM does NOT exist
 
-# ── Wait for network interface + get MAC ───────────────────────────────
-- name: "[net] Wait for network interface to appear (up to 60s)"
+- name: "[vm] Configure limits (CPU & RAM) and ensure running"
   shell: |
-    for i in $(seq 1 30); do
-      MAC=$(virsh domiflist "{{ item.name }}" 2>/dev/null | awk '/{{ talos_network }}/ {print $5}' | head -1)
-      if [ -n "$MAC" ]; then
-        echo "$MAC"
-        exit 0
-      fi
-      sleep 2
-    done
-    echo "TIMEOUT"
-    exit 1
+    virsh setvcpus "{{ item.name }}" {{ item.vcpus }} --maximum --config
+    virsh setvcpus "{{ item.name }}" {{ item.vcpus }} --config
+    virsh setmaxmem "{{ item.name }}" {{ item.memory }}M --config
+    virsh setmem "{{ item.name }}" {{ item.memory }}M --config
+    
+    STATE=$(virsh domstate "{{ item.name }}")
+    if [ "$STATE" != "running" ]; then
+      virsh start "{{ item.name }}"
+    fi
+  loop: "{{ all_nodes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: "[net] Retrieve MAC address for DHCP explicitly from XML"
+  shell: |
+    MAC=$(virsh dumpxml "{{ item.name }}" | grep "mac address=" | cut -d\' -f2 | head -1)
+    if [ -n "$MAC" ]; then
+      echo "$MAC"
+      exit 0
+    else
+      exit 1
+    fi
   loop: "{{ all_nodes }}"
   loop_control:
     label: "{{ item.name }}"
@@ -64,9 +65,9 @@
 - name: "[dhcp] Remove existing DHCP entry for MAC (if any)"
   shell: |
     MAC="{{ item.stdout }}"
-    EXISTING=$(virsh net-dumpxml {{ talos_network }} | grep "mac='$MAC'" | sed "s/^\s*//")
+    EXISTING=$(virsh net-dumpxml {{ vm_network }} | grep -i "mac='$MAC'" | sed "s/^\s*//")
     if [ -n "$EXISTING" ]; then
-      virsh net-update {{ talos_network }} delete ip-dhcp-host \
+      virsh net-update {{ vm_network }} delete ip-dhcp-host \
         --xml "$EXISTING" --live --config
     fi
   loop: "{{ mac_results.results }}"
@@ -77,7 +78,7 @@
 
 - name: "[dhcp] Register static IP → MAC reservation"
   command: >
-    virsh net-update {{ talos_network }} add ip-dhcp-host
+    virsh net-update {{ vm_network }} add ip-dhcp-host
     --xml "<host mac='{{ item.0.stdout }}' name='{{ item.1.name }}' ip='{{ item.1.ip }}'/>"
     --live --config
   with_together:
@@ -87,16 +88,13 @@
     label: "{{ item.1.name }} → {{ item.1.ip }}"
 
 # ── Summary ────────────────────────────────────────────────────────────
-- name: "[summary] Cluster node allocation"
+- name: "[summary] VM allocation"
   debug:
     msg:
       - "============================================="
-      - "Talos cluster: {{ talos_cluster_name }} [{{ talos_prefix }}]"
+      - "Provisioned VMs via cloning [base-server-ubuntu-24]"
       - "============================================="
-      - "MASTERS:"
-      - "{% for r in mac_results.results[:talos_masters|length] %}  {{ r.item.name }}: IP={{ r.item.ip }}  MAC={{ r.stdout }}{% endfor %}"
-      - "WORKERS:"
-      - "{% for r in mac_results.results[talos_masters|length:] %}  {{ r.item.name }}: IP={{ r.item.ip }}  MAC={{ r.stdout }}{% endfor %}"
+      - "{% for r in mac_results.results %}  {{ r.item.name }}: IP={{ r.item.ip }}  MAC={{ r.stdout }}{% endfor %}"
       - "============================================="
-      - "Next step:"
-      - "  talosctl apply-config --insecure --nodes {{ talos_masters[0].ip }} --file controlplane.yaml"
+      - "Note: VM might need a reboot or wait a minute for DHCP interface to pick up the new static IP."
+      - "      virsh reboot {{ all_nodes[0].name }}"

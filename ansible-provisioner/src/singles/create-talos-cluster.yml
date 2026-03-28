@@ -19,4 +19,4 @@
     all_nodes: "{{ talos_masters + talos_workers }}"
 
   tasks:
-    - import_tasks: ../modules/vm/main.yml
+    - import_tasks: ../modules/talos-cluster/main.yml
