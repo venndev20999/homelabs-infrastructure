@@ -4,5 +4,5 @@
   become: yes
   gather_facts: yes
 
-  tasks: 
-   - include: ../modules/patching/main.yml
+  tasks:
+    - import_tasks: ../modules/patching/main.yml

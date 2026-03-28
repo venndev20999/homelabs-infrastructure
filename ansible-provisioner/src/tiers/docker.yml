@@ -3,4 +3,4 @@
   become: yes
   become_user: root
   tasks:
-    - include: ../modules/docker/main.yml
+    - import_tasks: ../modules/docker/main.yml

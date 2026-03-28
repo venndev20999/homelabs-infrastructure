@@ -3,7 +3,7 @@
   hosts: "{{ env | default('all') }}"
   become: yes
   gather_facts: yes
-
-  tasks: 
-   - include: ../modules/common/main.yml
-   - include: ../modules/patching/main.yml
+  become_user: root
+  tasks:
+    - import_tasks: ../modules/common/main.yml
+    - import_tasks: ../modules/patching/main.yml

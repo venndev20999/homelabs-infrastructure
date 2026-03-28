@@ -61,33 +61,6 @@
     update_cache: yes
   become: yes
 
-- name: "[common] Configure fail2ban SSH jail"
-  copy:
-    dest: /etc/fail2ban/jail.local
-    owner: root
-    group: root
-    mode: 0644
-    content: |
-      [DEFAULT]
-      bantime  = 3600       ; ban for 1 hour
-      findtime = 600        ; within 10-minute window
-      maxretry = 5          ; allow 5 failed attempts before ban
-
-      [sshd]
-      enabled  = true
-      port     = ssh
-      logpath  = %(sshd_log)s
-      backend  = systemd
-  become: yes
-  notify: Restart fail2ban
-
-- name: "[common] Enable and start fail2ban"
-  systemd:
-    name: fail2ban
-    enabled: yes
-    state: started
-  become: yes
-
 # ── SSH hardening ─────────────────────────────────────────────────────────────
 - name: "[common] Harden SSH — disable password auth, allow key-only"
   lineinfile:
@@ -124,7 +97,6 @@
     - { regexp: '^#?UsePAM', line: 'UsePAM yes' }
     # Hide system info from SSH banner
     - { regexp: '^#?DebianBanner', line: 'DebianBanner no' }
-  notify: Restart sshd
 
 # ── Kernel / sysctl security hardening ───────────────────────────────────────
 - name: "[common] Apply kernel security sysctl settings"

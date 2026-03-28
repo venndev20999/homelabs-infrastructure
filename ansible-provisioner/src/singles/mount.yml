@@ -16,4 +16,4 @@
   strategy: free
 
   tasks:
-    - include: ../modules/core/mount/main.yml
+    - import_tasks: ../modules/core/mount/main.yml
