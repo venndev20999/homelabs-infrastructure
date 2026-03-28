@@ -26,6 +26,7 @@
         name: "{{ item.name }}"
         ansible_host: "{{ item.ip }}"
         ansible_user: venn
+        ansible_ssh_common_args: '-o ProxyJump=haproxy -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
         groups: newly_created_vms
       loop: "{{ vm_workers }}"
 
