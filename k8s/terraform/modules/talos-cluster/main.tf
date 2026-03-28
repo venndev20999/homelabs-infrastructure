@@ -82,3 +82,16 @@ resource "talos_cluster_kubeconfig" "this" {
   client_configuration = talos_machine_secrets.this.client_configuration
   node                 = var.controlplane_ips[0]
 }
+
+# ── Write configs to local files ───────────────────────────────────────────────
+resource "local_file" "talosconfig" {
+  content         = data.talos_client_configuration.this.talos_config
+  filename        = "${path.root}/output/talosconfig"
+  file_permission = "0600"
+}
+
+resource "local_file" "kubeconfig" {
+  content         = talos_cluster_kubeconfig.this.kubeconfig_raw
+  filename        = "${path.root}/output/kubeconfig"
+  file_permission = "0600"
+}
