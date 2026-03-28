@@ -33,19 +33,25 @@
     label: "{{ item.item.name }}"
   when: item.rc != 0   # only create if VM does NOT exist
 
-# ── Wait for network interface + get MAC ───────────────────────────────
-- name: "[net] Wait for network interface to appear (up to 60s)"
+- name: "[vm] Ensure VM is started"
   shell: |
-    for i in $(seq 1 30); do
-      MAC=$(virsh domiflist "{{ item.name }}" 2>/dev/null | awk '/{{ talos_network }}/ {print $5}' | head -1)
-      if [ -n "$MAC" ]; then
-        echo "$MAC"
-        exit 0
-      fi
-      sleep 2
-    done
-    echo "TIMEOUT"
-    exit 1
+    STATE=$(virsh domstate "{{ item.name }}")
+    if [ "$STATE" != "running" ]; then
+      virsh start "{{ item.name }}"
+    fi
+  loop: "{{ all_nodes }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# ── Wait for network interface + get MAC ───────────────────────────────
+- name: "[net] Retrieve MAC address for DHCP explicitly from XML"
+  shell: |
+    MAC=$(virsh dumpxml "{{ item.name }}" | grep "mac address=" | cut -d\' -f2 | head -1)
+    if [ -n "$MAC" ]; then
+      echo "$MAC"
+    else
+      exit 1
+    fi
   loop: "{{ all_nodes }}"
   loop_control:
     label: "{{ item.name }}"

@@ -65,9 +65,7 @@ virsh net-update default add ip-dhcp-host --xml "<host mac='52:54:00:b3:94:b0' n
 virsh net-update default add ip-dhcp-host --xml "<host mac='52:54:00:4f:53:71' name='haproxy'         ip='192.168.122.100'/>" --live --config
 virsh net-update default add ip-dhcp-host --xml "<host mac='52:54:00:b8:26:6b' name='common'          ip='192.168.122.210'/>" --live --config
 
-virsh net-update default add ip-dhcp-host --xml "<host mac='52:54:00:55:c8:e7' name='talos-vm-node-1'          ip='192.168.122.101'/>" --live --config
-virsh net-update default add ip-dhcp-host --xml "<host mac='52:54:00:b8:26:6b' name='common'          ip='192.168.122.210'/>" --live --config
-
+virsh net-update default add ip-dhcp-host --xml "<host mac='52:54:00:61:69:8a' name='k-test-1'          ip='192.168.122.109'/>" --live --config
 
 
 ## unknown mac

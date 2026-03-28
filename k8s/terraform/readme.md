@@ -84,6 +84,8 @@ make dev console       # Interactive terraform console
 
 # ── Teardown ───────────────────────────────────────────────────────
 make dev destroy       # Destroy cluster (auto-approve)
+make dev purge         # 🔥 Purge local state + lock files
+make dev purge-apply   # 🔥 Radical reset: purge, init, then apply
 ```
 
 ## Full Deployment Flow

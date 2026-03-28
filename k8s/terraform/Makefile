@@ -40,7 +40,7 @@ _run:
 	@$(MAKE) _$(CMD) ENV=$(ENV)
 
 # ── Terraform commands ────────────────────────────────────────────────────────
-.PHONY: _init _plan _apply _destroy _output _validate _fmt _refresh _console
+.PHONY: _init _plan _apply _apply-plan _destroy _validate _fmt _refresh _console _purge _purge-apply
 
 _init:
 	@echo "🔧 [$(ENV)] terraform init"
@@ -77,6 +77,17 @@ _refresh:
 _console:
 	@echo "💬 [$(ENV)] terraform console"
 	@$(TF) console -var-file=terraform.tfvars
+
+_purge:
+	@echo "🔥 [$(ENV)] Purging terraform state and local files"
+	@rm -rf environments/$(ENV)/.terraform
+	@rm -f environments/$(ENV)/terraform.tfstate
+	@rm -f environments/$(ENV)/terraform.tfstate.backup
+	@rm -f environments/$(ENV)/.terraform.lock.hcl
+	@rm -f environments/$(ENV)/tfplan
+	@echo "✅ State purged"
+
+_purge-apply: _purge _init _apply
 
 # ── Output helpers ────────────────────────────────────────────────────────────
 .PHONY: _output _kubeconfig _talosconfig
@@ -129,6 +140,8 @@ help:
 	@echo "  make <env> state-list     — List Terraform state resources"
 	@echo "  make <env> refresh        — Refresh state from real infra"
 	@echo "  make <env> console        — Interactive Terraform console"
+	@echo "  make <env> purge          — 🔥 Remove all local state and lock files"
+	@echo "  make <env> purge-apply    — 🔥 Radical reset: purge, init, then apply"
 	@echo ""
 	@echo "  Environments: dev | staging | prod"
 	@echo "  Example: make dev init && make dev plan && make dev apply"

@@ -12,7 +12,7 @@
   become: yes
 
   vars_files:
-    - ../vars/talos-"{{talos_prefix}}".yml
+    - ../vars/talos-dev.yml
 
   vars:
     # Combine masters + workers into one list for shared tasks
