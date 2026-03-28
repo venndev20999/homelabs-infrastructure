@@ -95,3 +95,42 @@ resource "local_file" "kubeconfig" {
   filename        = "${path.root}/output/kubeconfig"
   file_permission = "0600"
 }
+
+# ── Deploy Cilium CNI ──────────────────────────────────────────────────────────
+# Deploys Cilium automatically into the cluster after it is bootstrapped.
+# Based on: https://docs.siderolabs.com/kubernetes-guides/cni/deploying-cilium
+resource "helm_release" "cilium" {
+  depends_on = [
+    talos_machine_bootstrap.this,
+    talos_cluster_kubeconfig.this
+  ]
+
+  name       = "cilium"
+  repository = "https://helm.cilium.io/"
+  chart      = "cilium"
+  version    = "1.15.5" # Use stable version matching your k8s/talos setup
+  namespace  = "kube-system"
+
+  values = [
+    yamlencode({
+      ipam = {
+        mode = "kubernetes"
+      }
+      kubeProxyReplacement = true
+      securityContext = {
+        capabilities = {
+          ciliumAgent      = "{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}"
+          cleanCiliumState = "{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}"
+        }
+      }
+      cgroup = {
+        autoMount = {
+          enabled = false
+        }
+        hostRoot = "/sys/fs/cgroup"
+      }
+      k8sServiceHost = "localhost"
+      k8sServicePort = 7445
+    })
+  ]
+}
