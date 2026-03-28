@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kafka-connect
+description: Kafka Connect distributed cluster for sink/source connectors
+type: application
+version: 0.1.0
+appVersion: "7.6.0"

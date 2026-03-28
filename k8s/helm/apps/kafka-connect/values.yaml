@@ -1,0 +1,44 @@
+# Default values for Kafka Connect
+replicaCount: 2
+
+image:
+  repository: confluentinc/cp-kafka-connect
+  tag: "7.6.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8083
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+env:
+  CONNECT_BOOTSTRAP_SERVERS: "kafka:9092"
+  CONNECT_REST_PORT: "8083"
+  CONNECT_GROUP_ID: "kafka-connect-cluster"
+  CONNECT_CONFIG_STORAGE_TOPIC: "_connect-configs"
+  CONNECT_OFFSET_STORAGE_TOPIC: "_connect-offsets"
+  CONNECT_STATUS_STORAGE_TOPIC: "_connect-status"
+  CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+  CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+  CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+
+livenessProbe:
+  httpGet:
+    path: /connectors
+    port: 8083
+  initialDelaySeconds: 30
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /connectors
+    port: 8083
+  initialDelaySeconds: 15
+  periodSeconds: 15

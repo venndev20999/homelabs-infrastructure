@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ksqldb
+description: ksqlDB server for stream processing on Kafka topics
+type: application
+version: 0.1.0
+appVersion: "0.29.0"

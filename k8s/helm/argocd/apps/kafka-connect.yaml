@@ -1,0 +1,39 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-connect
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: finance-stock
+    tier: streaming
+spec:
+  project: finance-stock
+
+  sources:
+    - repoURL: https://github.com/your-org/finance-stock.git
+      targetRevision: main
+      path: infrastructure/k8s/helm/apps/kafka-connect
+      helm:
+        releaseName: kafka-connect
+        valueFiles:
+          - $values/infrastructure/k8s/helm/environments/prod/kafka-connect.yaml
+    - repoURL: https://github.com/your-org/finance-stock.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: finance-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+  revisionHistoryLimit: 5

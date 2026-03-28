@@ -1,0 +1,39 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ksqldb
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: finance-stock
+    tier: streaming
+spec:
+  project: finance-stock
+
+  sources:
+    - repoURL: https://github.com/your-org/finance-stock.git
+      targetRevision: main
+      path: infrastructure/k8s/helm/apps/ksqldb
+      helm:
+        releaseName: ksqldb
+        valueFiles:
+          - $values/infrastructure/k8s/helm/environments/prod/ksqldb.yaml
+    - repoURL: https://github.com/your-org/finance-stock.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: finance-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+  revisionHistoryLimit: 5

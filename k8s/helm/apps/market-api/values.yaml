@@ -1,0 +1,56 @@
+# Default values for market-api (Python FastAPI)
+# Override per-env in environments/<env>/market-api.yaml
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/your-org/market-api
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  host: "api.finance.local"
+  tls: []
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+env:
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  LOG_LEVEL: "info"
+
+# Secret refs (managed by Vault / Sealed Secrets)
+secrets:
+  API_KEY: ""
+  API_SECRET: ""
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8000
+  initialDelaySeconds: 5
+  periodSeconds: 10

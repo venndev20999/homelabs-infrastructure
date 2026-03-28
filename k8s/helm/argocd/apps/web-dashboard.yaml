@@ -1,0 +1,39 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: web-dashboard
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/part-of: finance-stock
+    tier: frontend
+spec:
+  project: finance-stock
+
+  sources:
+    - repoURL: https://github.com/your-org/finance-stock.git
+      targetRevision: main
+      path: infrastructure/k8s/helm/apps/web-dashboard
+      helm:
+        releaseName: web-dashboard
+        valueFiles:
+          - $values/infrastructure/k8s/helm/environments/prod/web-dashboard.yaml
+    - repoURL: https://github.com/your-org/finance-stock.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: finance-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+  revisionHistoryLimit: 5

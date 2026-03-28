@@ -1,0 +1,33 @@
+---
+# ArgoCD Project — RBAC boundary for finance-stock platform
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: finance-stock
+  namespace: argocd
+spec:
+  description: "Finance Stock Platform — market data, signals, dashboards"
+
+  # Only allow deployments from this repo
+  sourceRepos:
+    - "https://github.com/your-org/finance-stock.git"
+
+  # Allow deploying into these namespaces
+  destinations:
+    - namespace: finance-prod
+      server: https://kubernetes.default.svc
+    - namespace: finance-staging
+      server: https://kubernetes.default.svc
+
+  # Allow all core k8s resources + common CRDs
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # Prevent accidental orphan resources
+  orphanedResources:
+    warn: true
