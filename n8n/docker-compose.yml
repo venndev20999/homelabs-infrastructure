@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n-test
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Sets the timezone to your current location so scheduling and logs match up
+      - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
+      - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      # CRITICAL: This saves your n8n encryption key and credentials. 
+      # Without this, restarting the container will break your saved passwords!
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

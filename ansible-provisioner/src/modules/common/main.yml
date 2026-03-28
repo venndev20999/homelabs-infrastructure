@@ -1,0 +1,158 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# modules/common/main.yml
+# Common baseline configuration for all Ubuntu hosts:
+#   - Shell profile
+#   - Hostname
+#   - Timezone (Asia/Ho_Chi_Minh = UTC+7)
+#   - SSH hardening (key-only auth, fail2ban)
+#   - Kernel-level security sysctl
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Shell profiles ────────────────────────────────────────────────────────────
+- name: "[common] Copy user .bashrc"
+  copy:
+    src: "./files/.bashrc"
+    dest: "~/.bashrc"
+    mode: 0644
+
+- name: "[common] Copy user .bash_profile"
+  copy:
+    src: "./files/.bash_profile"
+    dest: "~/.bash_profile"
+    mode: 0644
+
+# ── Hostname ──────────────────────────────────────────────────────────────────
+- name: "[common] Ensure /etc/hostname matches inventory_hostname"
+  copy:
+    content: "{{ inventory_hostname }}\n"
+    dest: "/etc/hostname"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "[common] Apply hostname immediately"
+  command: hostname {{ inventory_hostname }}
+  register: hostname_status
+
+- name: "[common] Ensure /etc/hosts 127.0.1.1 matches inventory_hostname"
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ inventory_hostname }}"
+    owner: root
+    group: root
+    mode: 0644
+
+# ── Timezone: Vietnam (UTC+7) ─────────────────────────────────────────────────
+- name: "[common] Set timezone to Asia/Ho_Chi_Minh (UTC+7)"
+  timezone:
+    name: Asia/Ho_Chi_Minh
+  become: yes
+
+- name: "[common] Ensure timedatectl reflects new timezone"
+  command: timedatectl set-timezone Asia/Ho_Chi_Minh
+  become: yes
+
+# ── fail2ban: ban IPs with repeated SSH failures ──────────────────────────────
+- name: "[common] Install fail2ban"
+  apt:
+    name: fail2ban
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: "[common] Configure fail2ban SSH jail"
+  copy:
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: 0644
+    content: |
+      [DEFAULT]
+      bantime  = 3600       ; ban for 1 hour
+      findtime = 600        ; within 10-minute window
+      maxretry = 5          ; allow 5 failed attempts before ban
+
+      [sshd]
+      enabled  = true
+      port     = ssh
+      logpath  = %(sshd_log)s
+      backend  = systemd
+  become: yes
+  notify: Restart fail2ban
+
+- name: "[common] Enable and start fail2ban"
+  systemd:
+    name: fail2ban
+    enabled: yes
+    state: started
+  become: yes
+
+# ── SSH hardening ─────────────────────────────────────────────────────────────
+- name: "[common] Harden SSH — disable password auth, allow key-only"
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+    validate: /usr/sbin/sshd -t -f %s
+  become: yes
+  loop:
+    # Disable password-based login entirely
+    - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+    - { regexp: '^#?ChallengeResponseAuthentication', line: 'ChallengeResponseAuthentication no' }
+    - { regexp: '^#?KbdInteractiveAuthentication', line: 'KbdInteractiveAuthentication no' }
+    # Enforce public key authentication
+    - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+    # Disable root login over SSH
+    - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+    # Disable empty passwords
+    - { regexp: '^#?PermitEmptyPasswords', line: 'PermitEmptyPasswords no' }
+    # Drop idle sessions after 5 minutes (60s × 5 keepalives)
+    - { regexp: '^#?ClientAliveInterval', line: 'ClientAliveInterval 60' }
+    - { regexp: '^#?ClientAliveCountMax', line: 'ClientAliveCountMax 5' }
+    # Limit login grace period
+    - { regexp: '^#?LoginGraceTime', line: 'LoginGraceTime 30' }
+    # Limit concurrent unauthenticated connections
+    - { regexp: '^#?MaxStartups', line: 'MaxStartups 3:50:10' }
+    # Disable X11 and TCP forwarding
+    - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
+    - { regexp: '^#?AllowTcpForwarding', line: 'AllowTcpForwarding no' }
+    # Disable old SSH protocol 1
+    - { regexp: '^#?Protocol', line: 'Protocol 2' }
+    # Restrict PAM usage
+    - { regexp: '^#?UsePAM', line: 'UsePAM yes' }
+    # Hide system info from SSH banner
+    - { regexp: '^#?DebianBanner', line: 'DebianBanner no' }
+  notify: Restart sshd
+
+# ── Kernel / sysctl security hardening ───────────────────────────────────────
+- name: "[common] Apply kernel security sysctl settings"
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+    sysctl_file: /etc/sysctl.d/99-security.conf
+  become: yes
+  loop:
+    # Prevent IP spoofing
+    - { name: 'net.ipv4.conf.all.rp_filter',            value: '1' }
+    - { name: 'net.ipv4.conf.default.rp_filter',        value: '1' }
+    # Disable ICMP redirect acceptance
+    - { name: 'net.ipv4.conf.all.accept_redirects',     value: '0' }
+    - { name: 'net.ipv4.conf.default.accept_redirects', value: '0' }
+    - { name: 'net.ipv6.conf.all.accept_redirects',     value: '0' }
+    # Disable sending ICMP redirects
+    - { name: 'net.ipv4.conf.all.send_redirects',       value: '0' }
+    # Ignore ICMP broadcast (Smurf attack protection)
+    - { name: 'net.ipv4.icmp_echo_ignore_broadcasts',   value: '1' }
+    # Enable SYN flood protection
+    - { name: 'net.ipv4.tcp_syncookies',                value: '1' }
+    # Disable source routing
+    - { name: 'net.ipv4.conf.all.accept_source_route',  value: '0' }
+    # Log suspicious packets
+    - { name: 'net.ipv4.conf.all.log_martians',         value: '1' }
+    # Disable IPv6 if not needed (optional — comment out if you use IPv6)
+    - { name: 'net.ipv6.conf.all.disable_ipv6',         value: '1' }
+    - { name: 'net.ipv6.conf.default.disable_ipv6',     value: '1' }

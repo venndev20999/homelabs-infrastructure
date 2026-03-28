@@ -1,0 +1,54 @@
+---
+# modules/patching/main.yml
+# Patches all installed packages to fix known vulnerabilities.
+# Equivalent to:
+#   sudo apt-get update -y
+#   sudo apt-get upgrade -y
+#   sudo apt-get autoremove -y
+#   sudo apt-get autoclean -y
+
+- name: "[patching] Update apt cache"
+  apt:
+    update_cache: yes
+    cache_valid_time: 0   # force refresh — ensures latest security metadata
+  become: yes
+
+- name: "[patching] Upgrade all packages (security + bug fixes)"
+  apt:
+    upgrade: full          # full = apt-get upgrade -y (no dist-level changes)
+    force_apt_get: yes     # use apt-get instead of apt for scripting safety
+    dpkg_options: "force-confdef,force-confold"  # keep existing configs on conflict
+  become: yes
+  register: apt_upgrade_result
+
+- name: "[patching] Show upgrade summary"
+  debug:
+    msg: "{{ apt_upgrade_result.stdout_lines | default(['No output']) }}"
+  when:
+    - apt_upgrade_result is defined
+
+- name: "[patching] Remove unused dependency packages (autoremove)"
+  apt:
+    autoremove: yes
+    force_apt_get: yes
+    purge: yes             # also remove leftover config files
+  become: yes
+
+- name: "[patching] Clean up downloaded package cache (autoclean)"
+  apt:
+    autoclean: yes
+    force_apt_get: yes
+  become: yes
+
+- name: "[patching] Check if reboot is required"
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_required_file
+  become: yes
+
+# - name: "[patching] Notify if reboot is needed"
+#   debug:
+#     msg: "⚠️  Reboot required on {{ inventory_hostname }} to apply kernel/security patches."
+#   when:
+#     - reboot_required_file.stat is defined
+#     - reboot_required_file.stat.exists

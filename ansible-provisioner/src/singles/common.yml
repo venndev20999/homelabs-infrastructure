@@ -1,8 +1,9 @@
 ---
-- name: Patching
+- name: Common Task
   hosts: "{{ env | default('all') }}"
   become: yes
   gather_facts: yes
 
   tasks: 
+   - include: ../modules/common/main.yml
    - include: ../modules/patching/main.yml
