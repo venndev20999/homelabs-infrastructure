@@ -14,7 +14,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Config ────────────────────────────────────────────────────────────────────
-TF_IMAGE     ?= hashicorp/terraform:light
 ENVIRONMENTS  = dev staging prod
 TF_ROOT      := $(shell pwd)   # must run from terraform/ directory
 
@@ -23,11 +22,8 @@ TF_ROOT      := $(shell pwd)   # must run from terraform/ directory
 ENV  ?= dev
 CMD  ?= help
 
-# ── Docker base command ───────────────────────────────────────────────────────
-DOCKER_RUN = docker run --rm -it \
-	-v $(TF_ROOT):/workspace \
-	-w /workspace/environments/$(ENV) \
-	$(TF_IMAGE)
+# ── Terraform base command ────────────────────────────────────────────────────
+TF = terraform -chdir=environments/$(ENV)
 
 # ── Environment targets (make dev / make staging / make prod) ─────────────────
 .PHONY: $(ENVIRONMENTS)
@@ -48,52 +44,51 @@ _run:
 
 _init:
 	@echo "🔧 [$(ENV)] terraform init"
-	@$(DOCKER_RUN) init -upgrade
+	@$(TF) init -upgrade
 
 _plan:
 	@echo "📋 [$(ENV)] terraform plan"
-	@$(DOCKER_RUN) plan -var-file=terraform.tfvars -out=tfplan
+	@$(TF) plan -var-file=terraform.tfvars -out=tfplan
 
 _apply:
 	@echo "🚀 [$(ENV)] terraform apply"
-	@$(DOCKER_RUN) apply -var-file=terraform.tfvars -auto-approve
+	@$(TF) apply -var-file=terraform.tfvars -auto-approve
 
 _apply-plan:
 	@echo "🚀 [$(ENV)] terraform apply (from saved plan)"
-	@$(DOCKER_RUN) apply tfplan
+	@$(TF) apply tfplan
 
 _destroy:
 	@echo "💥 [$(ENV)] terraform destroy"
-	@$(DOCKER_RUN) destroy -var-file=terraform.tfvars -auto-approve
+	@$(TF) destroy -var-file=terraform.tfvars -auto-approve
 
 _validate:
 	@echo "✅ [$(ENV)] terraform validate"
-	@$(DOCKER_RUN) validate
+	@$(TF) validate
 
 _fmt:
 	@echo "🎨 Formatting all terraform files"
-	@docker run --rm -v $(TF_ROOT):/workspace -w /workspace \
-		$(TF_IMAGE) fmt -recursive
+	@terraform fmt -recursive
 
 _refresh:
 	@echo "🔄 [$(ENV)] terraform refresh"
-	@$(DOCKER_RUN) refresh -var-file=terraform.tfvars
+	@$(TF) refresh -var-file=terraform.tfvars
 
 _console:
 	@echo "💬 [$(ENV)] terraform console"
-	@$(DOCKER_RUN) console -var-file=terraform.tfvars
+	@$(TF) console -var-file=terraform.tfvars
 
 # ── Output helpers ────────────────────────────────────────────────────────────
 .PHONY: _output _kubeconfig _talosconfig
 
 _output:
 	@echo "📤 [$(ENV)] terraform outputs"
-	@$(DOCKER_RUN) output
+	@$(TF) output
 
 _kubeconfig:
 	@echo "💾 [$(ENV)] Saving kubeconfig → environments/$(ENV)/output/kubeconfig"
 	@mkdir -p $(TF_ROOT)/environments/$(ENV)/output
-	@$(DOCKER_RUN) output -raw kubeconfig \
+	@$(TF) output -raw kubeconfig \
 		> $(TF_ROOT)/environments/$(ENV)/output/kubeconfig
 	@chmod 600 $(TF_ROOT)/environments/$(ENV)/output/kubeconfig
 	@echo "✅ Run: export KUBECONFIG=$(TF_ROOT)/environments/$(ENV)/output/kubeconfig"
@@ -101,18 +96,18 @@ _kubeconfig:
 _talosconfig:
 	@echo "💾 [$(ENV)] Saving talosconfig → environments/$(ENV)/output/talosconfig"
 	@mkdir -p $(TF_ROOT)/environments/$(ENV)/output
-	@$(DOCKER_RUN) output -raw talosconfig \
+	@$(TF) output -raw talosconfig \
 		> $(TF_ROOT)/environments/$(ENV)/output/talosconfig
 	@chmod 600 $(TF_ROOT)/environments/$(ENV)/output/talosconfig
 	@echo "✅ Run: export TALOSCONFIG=$(TF_ROOT)/environments/$(ENV)/output/talosconfig"
 
 _state-list:
 	@echo "📦 [$(ENV)] terraform state list"
-	@$(DOCKER_RUN) state list
+	@$(TF) state list
 
 _state-show:
 	@echo "📦 [$(ENV)] terraform state show $(RESOURCE)"
-	@$(DOCKER_RUN) state show $(RESOURCE)
+	@$(TF) state show $(RESOURCE)
 
 # ── Utility ───────────────────────────────────────────────────────────────────
 .PHONY: help list-envs
