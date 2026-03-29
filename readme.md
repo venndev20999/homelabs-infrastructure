@@ -1,4 +1,4 @@
-# Finance Stock Infrastructure
+# Homelabs Infrastructure
 
 This directory contains the foundational infrastructure for the Finance Stock project. The infrastructure components are organized into dedicated folders for maintainability and separation of concerns.
 
