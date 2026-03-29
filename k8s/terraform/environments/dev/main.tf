@@ -14,21 +14,7 @@
 #   - Run from localserver OR with SSH tunnel: ssh -L 50000:192.168.122.110:50000 localserver
 #   - terraform init (downloads siderolabs/talos provider)
 
-# terraform {
-#   required_providers {
-#     talos = {
-#       source  = "siderolabs/talos"
-#       version = ">= 0.6.0"
-#     }
-#   }
 
-#   # Optional: store state remotely so team can share
-#   # backend "s3" {
-#   #   bucket = "finance-stock-tfstate"
-#   #   key    = "k8s/dev/terraform.tfstate"
-#   #   region = "ap-southeast-1"
-#   # }
-# }
 
 module "talos_cluster" {
   source = "../../modules/talos-cluster"
