@@ -1,0 +1,85 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# modules/elasticsearch/main.yml
+# Provisioning Elasticsearch 9.2.6 single-node instance for finance-stock infrastructure
+# ─────────────────────────────────────────────────────────────────────────────
+
+- name: "[elasticsearch] Install dependencies and prerequisite packages"
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - python3-apt
+    state: present
+    update_cache: yes
+
+- name: "[elasticsearch] Add Elasticsearch GPG key"
+  apt_key:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: "[elasticsearch] Add Elasticsearch 9.x repository"
+  apt_repository:
+    repo: "deb https://artifacts.elastic.co/packages/9.x/apt stable main"
+    state: present
+    filename: elastic-9.x
+
+- name: "[elasticsearch] Increase max_map_count for Elasticsearch"
+  sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: yes
+    sysctl_file: /etc/sysctl.d/70-elasticsearch.conf
+
+- name: "[elasticsearch] Install Elasticsearch version 9.2.6"
+  apt:
+    name: elasticsearch=9.2.6
+    state: present
+    update_cache: yes
+    allow_downgrades: yes
+
+- name: "[elasticsearch] Configure single-node mode in elasticsearch.yml"
+  lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: '^#?discovery.type:'
+    line: 'discovery.type: single-node'
+  register: es_config_discovery
+
+- name: "[elasticsearch] Bind to all network interfaces"
+  lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: '^#?network.host:'
+    line: 'network.host: 0.0.0.0'
+  register: es_config_network
+
+- name: "[elasticsearch] Disable xpack security (optional for simple internal setup)"
+  lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: '^#?xpack.security.enabled:'
+    line: 'xpack.security.enabled: false'
+  register: es_config_security
+  # Note: Security is usually recommended, but for a single-node internal dev setup, 
+  # disabling it makes initial connection easier. Remove this if security is required.
+
+- name: "[elasticsearch] Enable and start Elasticsearch service"
+  systemd:
+    name: elasticsearch
+    enabled: yes
+    state: started
+
+- name: "[elasticsearch] Restart Elasticsearch if configuration changed"
+  systemd:
+    name: elasticsearch
+    state: restarted
+  when: es_config_discovery.changed or es_config_network.changed or es_config_security.changed
+
+- name: "[elasticsearch] Wait for cluster to be ready on 9200"
+  wait_for:
+    port: 9200
+    host: localhost
+    delay: 10
+    timeout: 300
+    state: started

@@ -1,0 +1,14 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# singles/elasticsearch.yml
+# Playbook for provisioning single-node Elasticsearch cluster
+# ─────────────────────────────────────────────────────────────────────────────
+
+- name: Provision Elasticsearch 9.2.6
+  hosts: "{{ env | default('elasticsearch') }}"
+  become: yes
+  gather_facts: yes
+  become_user: root
+  tasks:
+    - name: Run Elasticsearch module
+      import_tasks: ../modules/elasticsearch/main.yml
