@@ -1,4 +1,4 @@
-# Finance Stock Infrastructure
+# Homelabs Infrastructure
 
 This repository defines the complete "Infrastructure as Code" (IaC) foundation for the **Finance Stock** project. From physical/KVM hardware provisioning to the Kubernetes cluster and application services.
 
