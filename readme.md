@@ -4,6 +4,16 @@ This repository defines the complete "Infrastructure as Code" (IaC) foundation f
 
 ---
 
+## ⚡️ Key Features
+
+*   **🚀 15-Minute Zero-to-Cluster:** Go from an empty KVM host to a fully functional Kubernetes cluster in under 15 minutes.
+*   **🛠 Full Ansible VM Provisioning:** Automated creation of control-plane and worker VMs with static DHCP assignments and resource tuning.
+*   **🛡 Immutable Infrastructure:** Kubernetes nodes run **Talos Linux** — a security-hardened, API-managed OS with no SSH and no shell.
+*   **🌍 Multi-Environment Ready:** Native support for `dev`, `staging`, and `prd` through directory-based inventory and Terraform variable isolation.
+*   **End-to-End Automation:** A unified workflow that bridges Python dependencies (`uv`), Ansible (VMs), and Terraform (K8s).
+
+---
+
 ## 🏗 High-Level Architecture
 
 The infrastructure is split into two main layers:
@@ -17,7 +27,7 @@ The infrastructure is split into two main layers:
 
 ## 🚀 Step-by-Step Provisioning Guide
 
-Follow this sequence to bootstrap the environment from scratch.
+Follow this sequence for the fastest deployment from scratch.
 
 ### Phase 1: Bare-metal & VM Foundation (Ansible)
 Use Ansible to create the virtual machines on your KVM host.
@@ -25,10 +35,10 @@ Use Ansible to create the virtual machines on your KVM host.
 2.  **Create VMs**:
     ```bash
     cd ansible-provisioner
+    # (~3 mins) This creates 5 VMs with networking on the host host
     ansible-playbook -i inventories/dev/inventory.ini playbooks/create-talos-cluster.yml
     ```
 3.  **Bootstrap Common Baseline**:
-    Configure SSH, timezone, and security for all standalone nodes:
     ```bash
     ansible-playbook -i inventories/dev/inventory.ini playbooks/common.yml
     ```
@@ -38,6 +48,7 @@ Once the VMs are booted into Talos Maintenance mode:
 1.  **Init & Apply**:
     ```bash
     cd k8s/terraform
+    # (~10 mins) Pulls providers, configures talos nodes, and bootstraps k8s
     make dev init
     make dev apply
     ```
@@ -49,15 +60,8 @@ Once the VMs are booted into Talos Maintenance mode:
 
 ### Phase 3: Infrastructure Addons (Terraform / Helm)
 The `talos-cluster` module automatically installs:
-- **Cilium CNI**: For networking and security.
-- **MetalLB**: For external LoadBalancer IPs.
-
-### Phase 4: Application Services (Ansible / K8s)
-- **Standalone DBs**: Provision Postgres/Elasticsearch using:
-  ```bash
-  ansible-playbook -i inventories/dev/inventory.ini playbooks/elasticsearch.yml
-  ```
-- **K8s Apps**: Deploy Kubernetes manifests through the `k8s/` directory.
+- **Cilium CNI**: Networking with eBPF and security policies.
+- **MetalLB**: Layer 2 advertisement for LoadBalancer services on your local network.
 
 ---
 
@@ -72,10 +76,8 @@ The `talos-cluster` module automatically installs:
 
 ---
 
-## 🛡 Features & Capabilities
+## 🛡 Capabilities
 
-- **Immutable Infrastructure**: K8s nodes run Talos Linux (no SSH, API-managed).
-- **Environment Isolation**: Separate `dev` and `prd` inventories and Terraform states.
-- **Automatic Health Checks**: Built-in Ansible/K8s checks to monitor node/service health.
-- **Unified Management**: Python dependencies managed with `uv` for speed and consistency.
-- **GitOps Ready**: Infrastructure that is entirely versioned and reproducible.
+- **Automatic Health Checks**: Built-in Ansible tasks to monitor disk and service health.
+- **Unified Management**: Fast Python management with `uv`.
+- **GitOps Ready**: Every piece of infrastructure is versioned and trackable.
