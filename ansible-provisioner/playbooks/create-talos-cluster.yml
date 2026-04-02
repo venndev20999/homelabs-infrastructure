@@ -15,17 +15,38 @@
 
   vars:
     # ── CLI Overrides Helper ──────────────────────────────────────────────────
-    # If master_ip / worker_ip are provided via CLI, convert them into objects
+    # Using 'is iterable' + 'is mapping' logic to avoid 'is list' collision in older Jinja2 environments
     
-    _master_ip_list: "{{ master_ip if master_ip is list else (master_ip | from_json if (master_ip is string and '[' in master_ip) else [master_ip]) }}"
-    _worker_ip_list: "{{ worker_ip if worker_ip is list else (worker_ip | from_json if (worker_ip is string and '[' in worker_ip) else [worker_ip]) }}"
+    # Safely convert master_ip string to list if it looks like JSON
+    _processed_master_ip: >-
+      {% if master_ip is not defined %}
+        []
+      {% elif master_ip is not string and master_ip is iterable %}
+        {{ master_ip }}
+      {% elif master_ip is string and '[' in master_ip %}
+        {{ master_ip | from_json }}
+      {% else %}
+        {{ [master_ip] }}
+      {% endif %}
+
+    # Safely convert worker_ip string to list if it looks like JSON
+    _processed_worker_ip: >-
+      {% if worker_ip is not defined %}
+        []
+      {% elif worker_ip is not string and worker_ip is iterable %}
+        {{ worker_ip }}
+      {% elif worker_ip is string and '[' in worker_ip %}
+        {{ worker_ip | from_json }}
+      {% else %}
+        {{ [worker_ip] }}
+      {% endif %}
 
     # Reconstruct master objects from CLI params
     cli_masters: >-
       {% set results = [] %}
-      {% for ip in _master_ip_list %}
+      {% for ip in _processed_master_ip %}
         {% set _ = results.append({
-          'name': 'talos-vm-master-' ~ (loop.index) ~ '-' ~ talos_prefix,
+          'name': 'talos-vm-master-' ~ loop.index ~ '-' ~ talos_prefix,
           'ip': ip,
           'memory': master_mem | default(4096),
           'vcpus': master_vcpus | default(4),
@@ -37,9 +58,9 @@
     # Reconstruct worker objects from CLI params
     cli_workers: >-
       {% set results = [] %}
-      {% for ip in _worker_ip_list %}
+      {% for ip in _processed_worker_ip %}
         {% set _ = results.append({
-          'name': 'talos-vm-worker-' ~ (loop.index) ~ '-' ~ talos_prefix,
+          'name': 'talos-vm-worker-' ~ loop.index ~ '-' ~ talos_prefix,
           'ip': ip,
           'memory': worker_mem | default(2048),
           'vcpus': worker_vcpus | default(2),
@@ -48,11 +69,11 @@
       {% endfor %}
       {{ results }}
 
-    # Choose between CLI-generated nodes or file-defined nodes
-    final_masters: "{{ cli_masters if (master_ip is defined and master_ip | length > 0) else (talos_masters | default([])) }}"
-    final_workers: "{{ cli_workers if (worker_ip is defined and worker_ip | length > 0) else (talos_workers | default([])) }}"
+    # Choose source of truth
+    final_masters: "{{ cli_masters if (master_ip is defined and _processed_master_ip | length > 0) else (talos_masters | default([])) }}"
+    final_workers: "{{ cli_workers if (worker_ip is defined and _processed_worker_ip | length > 0) else (talos_workers | default([])) }}"
     
-    # Variable used by the internal role loops
+    # Combined for task loops
     all_nodes: "{{ (final_masters | default([])) + (final_workers | default([])) }}"
 
   tasks:
