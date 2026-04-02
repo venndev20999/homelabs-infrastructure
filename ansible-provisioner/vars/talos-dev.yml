@@ -14,7 +14,7 @@ talos_network:  "default"
 # ── Control plane nodes ───────────────────────────────────────────────────────
 # memory in MB, vcpus count
 talos_masters:
-  - name: "talos-vm-master-1-{{ talos_prefix }}"
+  - name: "talos-vm-master-{{ talos_prefix }}"
     ip:   "192.168.122.20"
     memory: 4096
     vcpus:  4

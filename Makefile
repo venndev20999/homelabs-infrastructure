@@ -43,8 +43,6 @@ talos-cluster:
 		-e "talos_prefix=$(talos_prefix)" \
 		-e "master_ip=$(master_ip)" \
 		-e "worker_ip=$(worker_ip)" \
-		-e "master_count=$(master_count)" \
-		-e "worker_count=$(worker_count)" \
 		-e "talos_iso_path=$(talos_iso_path)" \
 		-e "talos_disk_dir=$(talos_disk_dir)" \
 		-e "talos_network=$(talos_network)"

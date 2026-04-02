@@ -15,45 +15,31 @@
 
   vars:
     # ── CLI Overrides Helper ──────────────────────────────────────────────────
-    # Using 'is iterable' + 'is mapping' logic to avoid 'is list' collision in older Jinja2 environments
     
-    # Safely convert master_ip string to list if it looks like JSON
-    _processed_master_ip: >-
-      {% if master_ip is not defined %}
-        []
-      {% elif master_ip is not string and master_ip is iterable %}
-        {{ master_ip }}
-      {% elif master_ip is string and '[' in master_ip %}
-        {{ master_ip | from_json }}
-      {% else %}
-        {{ [master_ip] }}
-      {% endif %}
+    # Safely convert master_ip by stripping everything except digits, dots, and commas.
+    # Handles inputs like '192.168.1.1', '[192.168.1.1]', or '["192.168.1.1"]' reliably.
+    _raw_master_ip: "{{ master_ip | default('') | string }}"
+    _processed_master_ip: "{{ _raw_master_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
 
-    # Safely convert worker_ip string to list if it looks like JSON
-    _processed_worker_ip: >-
-      {% if worker_ip is not defined %}
-        []
-      {% elif worker_ip is not string and worker_ip is iterable %}
-        {{ worker_ip }}
-      {% elif worker_ip is string and '[' in worker_ip %}
-        {{ worker_ip | from_json }}
-      {% else %}
-        {{ [worker_ip] }}
-      {% endif %}
+    # Safely convert worker_ip using the same logic.
+    _raw_worker_ip: "{{ worker_ip | default('') | string }}"
+    _processed_worker_ip: "{{ _raw_worker_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
 
-    # Reconstruct master objects from CLI params
+    # Reconstruct master object from CLI params (force exactly 1 master)
     cli_masters: >-
-      {% set results = [] %}
-      {% for ip in _processed_master_ip %}
-        {% set _ = results.append({
-          'name': 'talos-vm-master-' ~ loop.index ~ '-' ~ talos_prefix,
-          'ip': ip,
-          'memory': master_mem | default(4096),
-          'vcpus': master_vcpus | default(4),
-          'disk_size': master_disk_size | default(40)
-        }) %}
-      {% endfor %}
-      {{ results }}
+      {% if _processed_master_ip | length > 0 %}
+        [{{
+          {
+            'name': 'talos-vm-master-' ~ talos_prefix,
+            'ip': _processed_master_ip[0],
+            'memory': master_mem | default(4096),
+            'vcpus': master_vcpus | default(4),
+            'disk_size': master_disk_size | default(40)
+          }
+        }}]
+      {% else %}
+        []
+      {% endif %}
 
     # Reconstruct worker objects from CLI params
     cli_workers: >-
