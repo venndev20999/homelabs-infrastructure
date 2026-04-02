@@ -1,6 +1,7 @@
 ---
 # playbooks/create-talos-cluster.yml
 # Provisions Talos K8s nodes directly via Ansible.
+# Can be called with dynamic overrides for IPs, counts, and resource limits.
 
 - name: "Provision Talos cluster nodes"
   hosts: talos
@@ -8,12 +9,64 @@
   become: yes
 
   vars_files:
-    - ../vars/talos-dev.yml
+    # 1. Dynamically try to load environmental vars, then fall back to dev
+    - ["../vars/talos-{{ talos_prefix | default('dev') }}.yml", "/dev/null"]
+    - ["../vars/talos-dev.yml", "/dev/null"]
 
   vars:
-    # Combine masters + workers into one list for shared tasks/checks
-    all_nodes: "{{ (talos_masters | default([])) + (talos_workers | default([])) }}"
+    # ── CLI Overrides Helper ──────────────────────────────────────────────────
+    # If master_ip / worker_ip are provided via CLI, convert them into objects
+    
+    _master_ip_list: "{{ master_ip if master_ip is list else (master_ip | from_json if (master_ip is string and '[' in master_ip) else [master_ip]) }}"
+    _worker_ip_list: "{{ worker_ip if worker_ip is list else (worker_ip | from_json if (worker_ip is string and '[' in worker_ip) else [worker_ip]) }}"
+
+    # Reconstruct master objects from CLI params
+    cli_masters: >-
+      {% set results = [] %}
+      {% for ip in _master_ip_list %}
+        {% set _ = results.append({
+          'name': 'talos-vm-master-' ~ (loop.index) ~ '-' ~ talos_prefix,
+          'ip': ip,
+          'memory': master_mem | default(4096),
+          'vcpus': master_vcpus | default(4),
+          'disk_size': master_disk_size | default(40)
+        }) %}
+      {% endfor %}
+      {{ results }}
+
+    # Reconstruct worker objects from CLI params
+    cli_workers: >-
+      {% set results = [] %}
+      {% for ip in _worker_ip_list %}
+        {% set _ = results.append({
+          'name': 'talos-vm-worker-' ~ (loop.index) ~ '-' ~ talos_prefix,
+          'ip': ip,
+          'memory': worker_mem | default(2048),
+          'vcpus': worker_vcpus | default(2),
+          'disk_size': worker_disk_size | default(30)
+        }) %}
+      {% endfor %}
+      {{ results }}
+
+    # Choose between CLI-generated nodes or file-defined nodes
+    final_masters: "{{ cli_masters if (master_ip is defined and master_ip | length > 0) else (talos_masters | default([])) }}"
+    final_workers: "{{ cli_workers if (worker_ip is defined and worker_ip | length > 0) else (talos_workers | default([])) }}"
+    
+    # Variable used by the internal role loops
+    all_nodes: "{{ (final_masters | default([])) + (final_workers | default([])) }}"
 
   tasks:
+    - name: "[preflight] Print cluster distribution"
+      debug:
+        msg: 
+          - "Prefix: {{ talos_prefix }}"
+          - "Masters ({{ final_masters | length }}): {{ final_masters | map(attribute='ip') | list }}"
+          - "Workers ({{ final_workers | length }}): {{ final_workers | map(attribute='ip') | list }}"
+
+    - name: "[preflight] Override global vars for roles"
+      set_fact:
+        talos_masters: "{{ final_masters }}"
+        talos_workers: "{{ final_workers }}"
+
     - import_tasks: ./pre-check.yml
     - import_tasks: ../modules/talos-cluster/main.yml
