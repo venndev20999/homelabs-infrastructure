@@ -39,7 +39,7 @@ talos-cluster:
 	@if [ -z "$(talos_prefix)" ]; then echo "Error: talos_prefix is required"; exit 1; fi
 	@echo "🏗️ [ansible] Provisioning Talos nodes for cluster: $(talos_prefix)"
 	@cd $(ANSIBLE_DIR) && ansible-playbook -i inventory.ini \
-		playbooks/create-vm-server.yml \
+		playbooks/create-talos-cluster.yml \
 		-e "talos_prefix=$(talos_prefix)" \
 		-e "master_ip=$(master_ip)" \
 		-e "worker_ip=$(worker_ip)" \
@@ -49,7 +49,8 @@ talos-cluster:
 		-e "talos_disk_dir=$(talos_disk_dir)" \
 		-e "talos_network=$(talos_network)"
 	
-	@echo "🚀 [terraform] Applying Talos cluster configuration for $(talos_prefix)"
+	@echo "🚀 [terraform] Initializing and Applying Talos cluster configuration for $(talos_prefix)"
+	@$(MAKE) -C $(TF_K8S_DIR) $(talos_prefix) init
 	@$(MAKE) -C $(TF_K8S_DIR) $(talos_prefix) apply
 	
 	@echo "📝 [metadata] Synchronizing instance metadata"
