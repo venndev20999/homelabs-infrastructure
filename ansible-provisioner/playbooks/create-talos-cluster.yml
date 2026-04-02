@@ -1,10 +1,6 @@
 ---
-# singles/create-talos-server.yml
-# Provisions Talos KVM nodes directly via Ansible — no external scripts needed.
-#
-# Usage:
-#   ansible-playbook -i inventory.ini singles/create-talos-server.yml
-#   ansible-playbook -i inventory.ini singles/create-talos-server.yml -e talos_prefix=staging -e "talos_masters=[{name:'talos-vm-master-1-staging',ip:'192.168.122.120',memory:4096,vcpus:4,disk_size:50}]"
+# playbooks/create-talos-cluster.yml
+# Provisions Talos K8s nodes directly via Ansible.
 
 - name: "Provision Talos cluster nodes"
   hosts: talos
@@ -15,8 +11,9 @@
     - ../vars/talos-dev.yml
 
   vars:
-    # Combine masters + workers into one list for shared tasks
-    all_nodes: "{{ talos_masters + talos_workers }}"
+    # Combine masters + workers into one list for shared tasks/checks
+    all_nodes: "{{ (talos_masters | default([])) + (talos_workers | default([])) }}"
 
   tasks:
+    - import_tasks: ./pre-check.yml
     - import_tasks: ../modules/talos-cluster/main.yml

@@ -1,6 +1,17 @@
-- name: "[preflight] Check virt-clone is available"
-  command: which virt-clone
-  changed_when: false
+# - name: "[preflight] Check for IP conflicts in local inventory or ssh config"
+#   ansible.builtin.shell: |
+#     if grep -qw "{{ item.ip }}" "{{ inventory_file }}"; then
+#       echo "IP {{ item.ip }} already exists in inventory file!"
+#       exit 1
+#     fi
+#     if grep -qw "{{ item.ip }}" ~/.ssh/config; then
+#       echo "IP {{ item.ip }} already exists in ~/.ssh/config!"
+#       exit 1
+#     fi
+#   delegate_to: localhost
+#   become: no
+#   loop: "{{ all_nodes }}"
+#   changed_when: false
 
 # ── Clone VMs ─────────────────────────────────────────────────────────
 - name: "[vm] Check if VM already exists"

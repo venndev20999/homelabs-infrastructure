@@ -1,0 +1,28 @@
+# requirements.yml
+# Use this file to install roles from the shared modules repository.
+# Run: ansible-galaxy install -r requirements.yml -p ./roles/
+
+roles:
+  - name: homelabs.common
+    src: git@github.com:venndev20999/homelabs-infrastructure-module.git
+    scm: git
+    version: main
+    path: ansible/roles/common
+
+  - name: homelabs.patching
+    src: git@github.com:venndev20999/homelabs-infrastructure-module.git
+    scm: git
+    version: main
+    path: ansible/roles/patching
+
+  - name: homelabs.elasticsearch
+    src: git@github.com:venndev20999/homelabs-infrastructure-module.git
+    scm: git
+    version: main
+    path: ansible/roles/elasticsearch
+
+  - name: homelabs.kafka
+    src: git@github.com:venndev20999/homelabs-infrastructure-module.git
+    scm: git
+    version: main
+    path: ansible/roles/kafka

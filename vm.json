@@ -1,0 +1,27 @@
+[
+    {
+        "name": "talos-vm-master-1",
+        "ip": "192.168.122.20",
+		"env": "dev"
+    },
+    {
+        "name": "talos-vm-worker-1",
+        "ip": "192.168.122.21",
+		"env": "dev"
+    },
+    {
+        "name": "talos-vm-worker-2",
+        "ip": "192.168.122.22",
+		"env": "dev"
+    },
+    {
+        "name": "talos-vm-worker-3",
+        "ip": "192.168.122.23",
+		"env": "dev"
+    },
+    {
+        "name": "talos-vm-worker-4",
+        "ip": "192.168.122.24",
+		"env": "dev"
+    }
+]
