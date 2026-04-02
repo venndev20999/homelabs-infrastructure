@@ -46,8 +46,8 @@
   tasks:
     - name: "Wait for SSH to become available on the new VM"
       wait_for_connection:
-        delay: 5
-        timeout: 120
+        delay: 10
+        timeout: 300
 
     - name: "Gather facts now that SSH is available"
       setup:
