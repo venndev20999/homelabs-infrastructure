@@ -42,13 +42,15 @@
       set_fact:
         _cli_workers: >-
           {{ _cli_workers | default([]) + [{
-            'name': 'talos-vm-worker-' ~ (ansible_loop.index | string) ~ '-' ~ talos_prefix,
+            'name': 'talos-vm-worker-' ~ (loop_idx + 1) | string ~ '-' ~ talos_prefix,
             'ip': item,
             'memory': worker_mem | default(2048) | int,
             'vcpus': worker_vcpus | default(2) | int,
             'disk_size': worker_disk_size | default(30) | int
           }] }}
       loop: "{{ _worker_ip_list }}"
+      loop_control:
+        index_var: loop_idx
       when: _worker_ip_list | length > 0
 
     - name: "[preflight] Use existing workers if no CLI worker_ip given"
