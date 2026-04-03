@@ -9,67 +9,66 @@
   become: yes
 
   vars_files:
-    # 1. Dynamically try to load environmental vars, then fall back to dev
     - ["../vars/talos-{{ talos_prefix | default('dev') }}.yml", "/dev/null"]
     - ["../vars/talos-dev.yml", "/dev/null"]
 
   vars:
-    # ── CLI Overrides Helper ──────────────────────────────────────────────────
-    
-    # Safely convert master_ip by stripping everything except digits, dots, and commas.
-    # Handles inputs like '192.168.1.1', '[192.168.1.1]', or '["192.168.1.1"]' reliably.
+    # Strip all non-IP characters from the passed strings then split on comma.
+    # Works with: "192.168.1.1", '["192.168.1.1"]', '[192.168.122.90]'
     _raw_master_ip: "{{ master_ip | default('') | string }}"
-    _processed_master_ip: "{{ _raw_master_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
+    _master_ip_list: "{{ _raw_master_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
 
-    # Safely convert worker_ip using the same logic.
     _raw_worker_ip: "{{ worker_ip | default('') | string }}"
-    _processed_worker_ip: "{{ _raw_worker_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
-
-    # Reconstruct master object from CLI params (force exactly 1 master)
-    cli_masters_yaml: >-
-      {% if _processed_master_ip | length > 0 %}
-      - name: talos-vm-master-{{ talos_prefix }}
-        ip: {{ _processed_master_ip[0] }}
-        memory: {{ master_mem | default(4096) }}
-        vcpus: {{ master_vcpus | default(4) }}
-        disk_size: {{ master_disk_size | default(40) }}
-      {% else %}
-      []
-      {% endif %}
-
-    # Reconstruct worker objects from CLI params
-    cli_workers_yaml: >-
-      {% if _processed_worker_ip | length > 0 %}
-      {% for ip in _processed_worker_ip %}
-      - name: talos-vm-worker-{{ loop.index }}-{{ talos_prefix }}
-        ip: {{ ip }}
-        memory: {{ worker_mem | default(2048) }}
-        vcpus: {{ worker_vcpus | default(2) }}
-        disk_size: {{ worker_disk_size | default(30) }}
-      {% endfor %}
-      {% else %}
-      []
-      {% endif %}
-
-    # Choose source of truth and explicitly parse the YAML string back into a dict
-    final_masters: "{{ (cli_masters_yaml | from_yaml) if (master_ip is defined and _processed_master_ip | length > 0) else (talos_masters | default([])) }}"
-    final_workers: "{{ (cli_workers_yaml | from_yaml) if (worker_ip is defined and _processed_worker_ip | length > 0) else (talos_workers | default([])) }}"
-    
-    # Combined for task loops
-    all_nodes: "{{ (final_masters | default([])) + (final_workers | default([])) }}"
+    _worker_ip_list: "{{ _raw_worker_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
 
   tasks:
+    # ── Build node objects from CLI params ────────────────────────────────────
+    - name: "[preflight] Build master node object from CLI"
+      set_fact:
+        _cli_masters:
+          - name: "talos-vm-master-{{ talos_prefix }}"
+            ip: "{{ _master_ip_list[0] }}"
+            memory: "{{ master_mem | default(4096) | int }}"
+            vcpus: "{{ master_vcpus | default(4) | int }}"
+            disk_size: "{{ master_disk_size | default(40) | int }}"
+      when: _master_ip_list | length > 0
+
+    - name: "[preflight] Use existing masters if no CLI master_ip given"
+      set_fact:
+        _cli_masters: "{{ talos_masters | default([]) }}"
+      when: _master_ip_list | length == 0
+
+    - name: "[preflight] Build worker node objects from CLI"
+      set_fact:
+        _cli_workers: "{{ _cli_workers | default([]) + [item] }}"
+      loop: "{{ _worker_ip_list }}"
+      vars:
+        item:
+          name: "talos-vm-worker-{{ loop.index }}-{{ talos_prefix }}"
+          ip: "{{ item }}"
+          memory: "{{ worker_mem | default(2048) | int }}"
+          vcpus: "{{ worker_vcpus | default(2) | int }}"
+          disk_size: "{{ worker_disk_size | default(30) | int }}"
+      when: _worker_ip_list | length > 0
+
+    - name: "[preflight] Use existing workers if no CLI worker_ip given"
+      set_fact:
+        _cli_workers: "{{ talos_workers | default([]) }}"
+      when: _worker_ip_list | length == 0
+
+    # ── Commit final node lists ───────────────────────────────────────────────
+    - name: "[preflight] Set final node vars"
+      set_fact:
+        talos_masters: "{{ _cli_masters }}"
+        talos_workers: "{{ _cli_workers }}"
+        all_nodes: "{{ _cli_masters + _cli_workers }}"
+
     - name: "[preflight] Print cluster distribution"
       debug:
-        msg: 
+        msg:
           - "Prefix: {{ talos_prefix }}"
-          - "Masters ({{ final_masters | length }}): {{ final_masters | map(attribute='ip') | list }}"
-          - "Workers ({{ final_workers | length }}): {{ final_workers | map(attribute='ip') | list }}"
-
-    - name: "[preflight] Override global vars for roles"
-      set_fact:
-        talos_masters: "{{ final_masters }}"
-        talos_workers: "{{ final_workers }}"
+          - "Masters ({{ _cli_masters | length }}): {{ _cli_masters | map(attribute='ip') | list }}"
+          - "Workers ({{ _cli_workers | length }}): {{ _cli_workers | map(attribute='ip') | list }}"
 
     - import_tasks: ./pre-check.yml
     - import_tasks: ../modules/talos-cluster/main.yml
