@@ -68,6 +68,13 @@
   when: item.stdout == "TIMEOUT" or item.rc != 0
 
 # ── Register static DHCP reservations ─────────────────────────────────
+- name: "[dhcp] Reload libvirt network to flush stale DHCP state"
+  shell: |
+    virsh net-destroy {{ vm_network }}
+    sleep 1
+    virsh net-start {{ vm_network }}
+  changed_when: true
+
 - name: "[dhcp] Remove existing DHCP entry for MAC (if any)"
   shell: |
     MAC="{{ item.stdout }}"

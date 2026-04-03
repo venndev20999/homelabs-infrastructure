@@ -11,7 +11,7 @@ ANSIBLE_DIR      = ansible-provisioner
 TF_K8S_DIR       = k8s/terraform
 SSH_CONFIG       = sshconfig
 
-.PHONY: create vm talos-cluster metadata update-metadata help
+.PHONY: create delete vm talos-cluster delete-talos-cluster generate-tfvars metadata update-metadata help
 
 # ── Main Entry Points ─────────────────────────────────────────────────────────
 
@@ -55,6 +55,29 @@ talos-cluster:
 	@$(MAKE) -C $(TF_K8S_DIR) _apply ENV=$(talos_prefix)
 
 	@echo "✅ Talos cluster $(talos_prefix) is ready."
+
+# ── DELETE ────────────────────────────────────────────────────────────────────
+
+# Entry point for deletion (acts as namespace)
+delete:
+	@:
+
+# Command: delete talos-cluster
+# Destroys Terraform state then removes all VMs with the given prefix from virsh.
+# Example: make delete talos-cluster talos_prefix=prd
+#          make delete talos-cluster talos_prefix=prd tf_destroy=false   (skip tf step)
+delete-talos-cluster:
+	@if [ -z "$(talos_prefix)" ]; then echo "Error: talos_prefix is required"; exit 1; fi
+
+	@if [ "$(tf_destroy)" != "false" ]; then \
+		echo "💥 [terraform] Destroying cluster state for $(talos_prefix)"; \
+		$(MAKE) -C $(TF_K8S_DIR) _destroy ENV=$(talos_prefix) || true; \
+	fi
+
+	@echo "🗑️ [virsh] Removing all VMs with prefix 'talos-vm-*-$(talos_prefix)'"
+	@cd $(ANSIBLE_DIR) && ansible-playbook -i inventory.ini \
+		playbooks/delete-talos-cluster.yml \
+		-e "talos_prefix=$(talos_prefix)"
 
 # ── Generate terraform.tfvars from CLI IPs ────────────────────────────────────
 .PHONY: generate-tfvars
@@ -106,4 +129,6 @@ help:
 	@echo "Available commands:"
 	@echo "  make create vm vm_prefix=... vm_ip=... vm_cpu=... vm_mem=..."
 	@echo "  make create talos-cluster talos_prefix=... master_ip=... worker_ip=..."
+	@echo "  make delete talos-cluster talos_prefix=...        # destroy TF + remove VMs"
+	@echo "  make delete talos-cluster talos_prefix=... tf_destroy=false  # skip TF, just virsh"
 	@echo "  make metadata              # Regenerate vm.json from sshconfig"
