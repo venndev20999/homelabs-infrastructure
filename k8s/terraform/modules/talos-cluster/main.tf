@@ -97,7 +97,7 @@ resource "local_file" "kubeconfig" {
 }
 
 # ── Wait for cluster to be healthy before helm ───────────────────────────────────
-resource "talos_cluster_health" "this" {
+data "talos_cluster_health" "this" {
   depends_on = [
     talos_machine_configuration_apply.controlplane,
     talos_machine_bootstrap.this
@@ -115,7 +115,7 @@ resource "helm_release" "cilium" {
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
-    talos_cluster_health.this
+    data.talos_cluster_health.this
   ]
 
   name       = "cilium"
