@@ -34,12 +34,17 @@
     label: "{{ item.item.name }}"
   when: item.rc != 0   # only clone if VM does NOT exist
 
-- name: "[vm] Configure limits (CPU & RAM)"
+- name: "[vm] Configure limits (CPU & RAM) and ensure running"
   shell: |
     virsh setvcpus "{{ item.name }}" {{ item.vcpus }} --maximum --config
     virsh setvcpus "{{ item.name }}" {{ item.vcpus }} --config
     virsh setmaxmem "{{ item.name }}" {{ item.memory }}M --config
     virsh setmem "{{ item.name }}" {{ item.memory }}M --config
+    
+    STATE=$(virsh domstate "{{ item.name }}")
+    if [ "$STATE" != "running" ]; then
+      virsh start "{{ item.name }}"
+    fi
   loop: "{{ all_nodes }}"
   loop_control:
     label: "{{ item.name }}"
@@ -99,16 +104,6 @@
     - "{{ all_nodes }}"
   loop_control:
     label: "{{ item.1.name }} → {{ item.1.ip }}"
-
-- name: "[vm] Start VM (now that DHCP is registered)"
-  shell: |
-    STATE=$(virsh domstate "{{ item.name }}")
-    if [ "$STATE" != "running" ]; then
-      virsh start "{{ item.name }}"
-    fi
-  loop: "{{ all_nodes }}"
-  loop_control:
-    label: "{{ item.name }}"
 
 # ── Summary ────────────────────────────────────────────────────────────
 - name: "[summary] VM allocation"
