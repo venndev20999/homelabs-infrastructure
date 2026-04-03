@@ -40,15 +40,15 @@
 
     - name: "[preflight] Build worker node objects from CLI"
       set_fact:
-        _cli_workers: "{{ _cli_workers | default([]) + [item] }}"
+        _cli_workers: >-
+          {{ _cli_workers | default([]) + [{
+            'name': 'talos-vm-worker-' ~ (ansible_loop.index | string) ~ '-' ~ talos_prefix,
+            'ip': item,
+            'memory': worker_mem | default(2048) | int,
+            'vcpus': worker_vcpus | default(2) | int,
+            'disk_size': worker_disk_size | default(30) | int
+          }] }}
       loop: "{{ _worker_ip_list }}"
-      vars:
-        item:
-          name: "talos-vm-worker-{{ loop.index }}-{{ talos_prefix }}"
-          ip: "{{ item }}"
-          memory: "{{ worker_mem | default(2048) | int }}"
-          vcpus: "{{ worker_vcpus | default(2) | int }}"
-          disk_size: "{{ worker_disk_size | default(30) | int }}"
       when: _worker_ip_list | length > 0
 
     - name: "[preflight] Use existing workers if no CLI worker_ip given"
