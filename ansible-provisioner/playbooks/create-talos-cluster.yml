@@ -26,38 +26,34 @@
     _processed_worker_ip: "{{ _raw_worker_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
 
     # Reconstruct master object from CLI params (force exactly 1 master)
-    cli_masters: >-
+    cli_masters_yaml: >-
       {% if _processed_master_ip | length > 0 %}
-        [{{
-          {
-            'name': 'talos-vm-master-' ~ talos_prefix,
-            'ip': _processed_master_ip[0],
-            'memory': master_mem | default(4096),
-            'vcpus': master_vcpus | default(4),
-            'disk_size': master_disk_size | default(40)
-          }
-        }}]
+      - name: talos-vm-master-{{ talos_prefix }}
+        ip: {{ _processed_master_ip[0] }}
+        memory: {{ master_mem | default(4096) }}
+        vcpus: {{ master_vcpus | default(4) }}
+        disk_size: {{ master_disk_size | default(40) }}
       {% else %}
-        []
+      []
       {% endif %}
 
     # Reconstruct worker objects from CLI params
-    cli_workers: >-
-      {% set results = [] %}
+    cli_workers_yaml: >-
+      {% if _processed_worker_ip | length > 0 %}
       {% for ip in _processed_worker_ip %}
-        {% set _ = results.append({
-          'name': 'talos-vm-worker-' ~ loop.index ~ '-' ~ talos_prefix,
-          'ip': ip,
-          'memory': worker_mem | default(2048),
-          'vcpus': worker_vcpus | default(2),
-          'disk_size': worker_disk_size | default(30)
-        }) %}
+      - name: talos-vm-worker-{{ loop.index }}-{{ talos_prefix }}
+        ip: {{ ip }}
+        memory: {{ worker_mem | default(2048) }}
+        vcpus: {{ worker_vcpus | default(2) }}
+        disk_size: {{ worker_disk_size | default(30) }}
       {% endfor %}
-      {{ results }}
+      {% else %}
+      []
+      {% endif %}
 
-    # Choose source of truth
-    final_masters: "{{ cli_masters if (master_ip is defined and _processed_master_ip | length > 0) else (talos_masters | default([])) }}"
-    final_workers: "{{ cli_workers if (worker_ip is defined and _processed_worker_ip | length > 0) else (talos_workers | default([])) }}"
+    # Choose source of truth and explicitly parse the YAML string back into a dict
+    final_masters: "{{ (cli_masters_yaml | from_yaml) if (master_ip is defined and _processed_master_ip | length > 0) else (talos_masters | default([])) }}"
+    final_workers: "{{ (cli_workers_yaml | from_yaml) if (worker_ip is defined and _processed_worker_ip | length > 0) else (talos_workers | default([])) }}"
     
     # Combined for task loops
     all_nodes: "{{ (final_masters | default([])) + (final_workers | default([])) }}"
