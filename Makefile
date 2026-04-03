@@ -51,8 +51,8 @@ talos-cluster:
 	@$(MAKE) generate-tfvars talos_prefix=$(talos_prefix) master_ip=$(master_ip) worker_ip=$(worker_ip)
 
 	@echo "🚀 [terraform] Initializing and Applying Talos cluster configuration for $(talos_prefix)"
-	@$(MAKE) -C $(TF_K8S_DIR) $(talos_prefix) init
-	@$(MAKE) -C $(TF_K8S_DIR) $(talos_prefix) apply
+	@$(MAKE) -C $(TF_K8S_DIR) _init ENV=$(talos_prefix)
+	@$(MAKE) -C $(TF_K8S_DIR) _apply ENV=$(talos_prefix)
 
 	@echo "✅ Talos cluster $(talos_prefix) is ready."
 

@@ -14,7 +14,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Config ────────────────────────────────────────────────────────────────────
-ENVIRONMENTS  = dev staging prod
+ENVIRONMENTS  = dev stg prd
 TF_ROOT      := $(shell pwd)   # must run from terraform/ directory
 
 # ── Detect environment from first target ──────────────────────────────────────
