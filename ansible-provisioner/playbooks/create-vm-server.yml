@@ -26,7 +26,7 @@
         name: "{{ item.name }}"
         ansible_host: "{{ item.ip }}"
         ansible_user: venn
-        ansible_ssh_common_args: '-o ProxyJump=haproxy -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        ansible_ssh_common_args: '-o ProxyJump=localserver -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
         groups: newly_created_vms
       loop: "{{ vm_workers }}"
 
@@ -47,10 +47,7 @@
     - name: "Wait for SSH to become available on the new VM"
       wait_for_connection:
         delay: 10
-        timeout: 300
-
-    - name: "Gather facts now that SSH is available"
-      setup:
+        timeout: 100
 
     # These now execute securely INSIDE the new VM, not on the localserver
     - import_tasks: ../modules/common/main.yml
