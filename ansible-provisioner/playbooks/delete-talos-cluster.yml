@@ -1,0 +1,75 @@
+---
+# playbooks/delete-talos-cluster.yml
+# Destroys all Talos cluster VMs and their DHCP reservations for a given prefix.
+# Called by: make delete talos-cluster talos_prefix=<env>
+#
+# What it does:
+#   1. Finds all VMs matching talos-vm-*-<prefix>
+#   2. Destroys and undefines each VM (including its disk)
+#   3. Removes their DHCP reservations from the libvirt network
+
+- name: "Destroy Talos cluster VMs"
+  hosts: talos
+  gather_facts: no
+  become: yes
+
+  vars:
+    vm_network: "default"
+    vm_prefix_pattern: "talos-vm-*-{{ talos_prefix }}"
+
+  tasks:
+    - name: "[preflight] Validate talos_prefix is set"
+      fail:
+        msg: "talos_prefix is required"
+      when: talos_prefix is not defined or talos_prefix == ''
+
+    - name: "[discovery] Find all VMs matching prefix"
+      shell: |
+        virsh list --all --name | grep -E '^talos-vm-.*-{{ talos_prefix }}$' || true
+      register: found_vms
+      changed_when: false
+
+    - name: "[discovery] Print VMs to be deleted"
+      debug:
+        msg: "VMs to delete: {{ found_vms.stdout_lines }}"
+
+    - name: "[vm] Destroy running VMs"
+      shell: |
+        STATE=$(virsh domstate "{{ item }}" 2>/dev/null || echo "not found")
+        if [ "$STATE" = "running" ]; then
+          virsh destroy "{{ item }}"
+        fi
+      loop: "{{ found_vms.stdout_lines }}"
+      when: found_vms.stdout_lines | length > 0
+      ignore_errors: yes
+
+    - name: "[dhcp] Remove DHCP reservation for each VM"
+      shell: |
+        MAC=$(virsh dumpxml "{{ item }}" 2>/dev/null | grep "mac address=" | cut -d\' -f2 | head -1)
+        if [ -n "$MAC" ]; then
+          EXISTING=$(virsh net-dumpxml {{ vm_network }} | grep "mac='$MAC'" | sed "s/^\s*//")
+          if [ -n "$EXISTING" ]; then
+            virsh net-update {{ vm_network }} delete ip-dhcp-host \
+              --xml "$EXISTING" --live --config && echo "Removed DHCP for $MAC"
+          fi
+        fi
+      loop: "{{ found_vms.stdout_lines }}"
+      when: found_vms.stdout_lines | length > 0
+      ignore_errors: yes
+      changed_when: false
+
+    - name: "[vm] Undefine VMs and remove storage"
+      shell: |
+        virsh undefine "{{ item }}" --remove-all-storage 2>/dev/null || \
+        virsh undefine "{{ item }}" 2>/dev/null || true
+      loop: "{{ found_vms.stdout_lines }}"
+      when: found_vms.stdout_lines | length > 0
+      ignore_errors: yes
+
+    - name: "[summary] Deletion complete"
+      debug:
+        msg:
+          - "============================================="
+          - "Deleted {{ found_vms.stdout_lines | length }} VM(s) for prefix: {{ talos_prefix }}"
+          - "{% for vm in found_vms.stdout_lines %}  - {{ vm }}{% endfor %}"
+          - "============================================="

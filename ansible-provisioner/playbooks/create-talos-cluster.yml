@@ -1,6 +1,7 @@
 ---
 # playbooks/create-talos-cluster.yml
 # Provisions Talos K8s nodes directly via Ansible.
+# Can be called with dynamic overrides for IPs, counts, and resource limits.
 
 - name: "Provision Talos cluster nodes"
   hosts: talos
@@ -8,12 +9,68 @@
   become: yes
 
   vars_files:
-    - ../vars/talos-dev.yml
+    - ["../vars/talos-{{ talos_prefix | default('dev') }}.yml", "/dev/null"]
+    - ["../vars/talos-dev.yml", "/dev/null"]
 
   vars:
-    # Combine masters + workers into one list for shared tasks/checks
-    all_nodes: "{{ (talos_masters | default([])) + (talos_workers | default([])) }}"
+    # Strip all non-IP characters from the passed strings then split on comma.
+    # Works with: "192.168.1.1", '["192.168.1.1"]', '[192.168.122.90]'
+    _raw_master_ip: "{{ master_ip | default('') | string }}"
+    _master_ip_list: "{{ _raw_master_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
+
+    _raw_worker_ip: "{{ worker_ip | default('') | string }}"
+    _worker_ip_list: "{{ _raw_worker_ip | regex_replace('[^0-9.,]', '') | split(',') | reject('==', '') | list }}"
 
   tasks:
+    # ── Build node objects from CLI params ────────────────────────────────────
+    - name: "[preflight] Build master node object from CLI"
+      set_fact:
+        _cli_masters:
+          - name: "talos-vm-master-{{ talos_prefix }}"
+            ip: "{{ _master_ip_list[0] }}"
+            memory: "{{ master_mem | default(4096) | int }}"
+            vcpus: "{{ master_vcpus | default(4) | int }}"
+            disk_size: "{{ master_disk_size | default(40) | int }}"
+      when: _master_ip_list | length > 0
+
+    - name: "[preflight] Use existing masters if no CLI master_ip given"
+      set_fact:
+        _cli_masters: "{{ talos_masters | default([]) }}"
+      when: _master_ip_list | length == 0
+
+    - name: "[preflight] Build worker node objects from CLI"
+      set_fact:
+        _cli_workers: >-
+          {{ _cli_workers | default([]) + [{
+            'name': 'talos-vm-worker-' ~ (loop_idx + 1) | string ~ '-' ~ talos_prefix,
+            'ip': item,
+            'memory': worker_mem | default(2048) | int,
+            'vcpus': worker_vcpus | default(2) | int,
+            'disk_size': worker_disk_size | default(30) | int
+          }] }}
+      loop: "{{ _worker_ip_list }}"
+      loop_control:
+        index_var: loop_idx
+      when: _worker_ip_list | length > 0
+
+    - name: "[preflight] Use existing workers if no CLI worker_ip given"
+      set_fact:
+        _cli_workers: "{{ talos_workers | default([]) }}"
+      when: _worker_ip_list | length == 0
+
+    # ── Commit final node lists ───────────────────────────────────────────────
+    - name: "[preflight] Set final node vars"
+      set_fact:
+        talos_masters: "{{ _cli_masters }}"
+        talos_workers: "{{ _cli_workers }}"
+        all_nodes: "{{ _cli_masters + _cli_workers }}"
+
+    - name: "[preflight] Print cluster distribution"
+      debug:
+        msg:
+          - "Prefix: {{ talos_prefix }}"
+          - "Masters ({{ _cli_masters | length }}): {{ _cli_masters | map(attribute='ip') | list }}"
+          - "Workers ({{ _cli_workers | length }}): {{ _cli_workers | map(attribute='ip') | list }}"
+
     - import_tasks: ./pre-check.yml
     - import_tasks: ../modules/talos-cluster/main.yml

@@ -44,10 +44,6 @@
     target_hostname: "{{ vm_workers[0].name }}"
 
   tasks:
-    - name: "Wait for SSH to become available on the new VM"
-      wait_for_connection:
-        delay: 10
-        timeout: 100
 
     # These now execute securely INSIDE the new VM, not on the localserver
     - import_tasks: ../modules/common/main.yml
