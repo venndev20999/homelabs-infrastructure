@@ -45,3 +45,9 @@ talos_workers:
     memory: 2048
     vcpus:  2
     disk_size: 30
+
+  - name: "talos-vm-worker-5-{{ talos_prefix }}"
+    ip:   "192.168.122.25"
+    memory: 2048
+    vcpus:  2
+    disk_size: 30
