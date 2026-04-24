@@ -130,18 +130,18 @@ resource "local_file" "kubeconfig" {
 }
 
 # ── Wait for cluster to be healthy before helm ───────────────────────────────────
-data "talos_cluster_health" "this" {
-  depends_on = [
-    talos_machine_configuration_apply.controlplane,
-    talos_machine_bootstrap.this,
-    helm_release.cilium
-  ]
-
-  client_configuration   = talos_machine_secrets.this.client_configuration
-  control_plane_nodes    = var.controlplane_ips
-  endpoints              = var.controlplane_ips
-  skip_kubernetes_checks = true # Allow Cilium to be installed while nodes are NotReady
-}
+# data "talos_cluster_health" "this" {
+#   depends_on = [
+#     talos_machine_configuration_apply.controlplane,
+#     talos_machine_bootstrap.this,
+#     helm_release.cilium
+#   ]
+# 
+#   client_configuration   = talos_machine_secrets.this.client_configuration
+#   control_plane_nodes    = var.controlplane_ips
+#   endpoints              = var.controlplane_ips
+#   skip_kubernetes_checks = true # Allow Cilium to be installed while nodes are NotReady
+# }
 
 # ── Deploy Cilium CNI ──────────────────────────────────────────────────────────
 # Deploys Cilium automatically into the cluster after it is bootstrapped.

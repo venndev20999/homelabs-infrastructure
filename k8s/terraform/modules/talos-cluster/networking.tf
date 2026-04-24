@@ -11,7 +11,7 @@ resource "null_resource" "cilium_networking" {
   }
 
   provisioner "local-exec" {
-    command = "echo '${local.networking_manifests}' | KUBECONFIG=${path.root}/output/kubeconfig kubectl apply -f -"
+    command = "KUBECONFIG=${path.root}/output/kubeconfig $(command -v kubectl || echo kubectl) apply -f - <<EOF\n${local.networking_manifests}\nEOF"
   }
 }
 
@@ -26,6 +26,8 @@ metadata:
 spec:
   blocks:
     - cidr: "192.168.122.200/29"
+  serviceSelector:
+    matchLabels: {} # Match all services
 ---
 # Cilium L2 Announcement Policy
 apiVersion: "cilium.io/v2alpha1"
