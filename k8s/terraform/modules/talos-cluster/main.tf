@@ -158,6 +158,9 @@ resource "helm_release" "cilium" {
   version    = "1.15.5" # Use stable version matching your k8s/talos setup
   namespace  = "kube-system"
 
+  timeout = 900
+  wait    = false
+
   values = [
     yamlencode({
       ipam = {
