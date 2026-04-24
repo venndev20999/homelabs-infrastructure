@@ -193,6 +193,7 @@ resource "helm_release" "cilium" {
       l2announcements = {
         enabled = true
       }
+      devices = ["enx+"] # Tell Cilium to look at your enx... interfaces
       externalIPs = {
         enabled = true
       }
