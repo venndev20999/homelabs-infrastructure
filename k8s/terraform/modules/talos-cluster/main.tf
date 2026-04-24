@@ -53,11 +53,19 @@ data "talos_machine_configuration" "controlplane" {
                 }
               ]
             })
+          },
+          {
+            name     = "gateway-api-crds"
+            contents = data.http.gateway_api_crds.response_body
           }
         ]
       }
     })
   ]
+}
+
+data "http" "gateway_api_crds" {
+  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml"
 }
 
 # Generate Worker Config
@@ -135,30 +143,13 @@ data "talos_cluster_health" "this" {
   skip_kubernetes_checks = true # Allow Cilium to be installed while nodes are NotReady
 }
 
-# ── Install Gateway API CRDs ───────────────────────────────────────────────────
-# Required for Cilium Gateway API support
-resource "helm_release" "gateway_api_crds" {
-  depends_on = [
-    talos_machine_bootstrap.this,
-    talos_cluster_kubeconfig.this
-  ]
-
-  name             = "gateway-api-crds"
-  repository       = "https://charts.bitnami.com/bitnami"
-  chart            = "gateway-api"
-  version          = "0.1.0" # Version of the CRD chart
-  namespace        = "kube-system"
-  create_namespace = false
-}
-
 # ── Deploy Cilium CNI ──────────────────────────────────────────────────────────
 # Deploys Cilium automatically into the cluster after it is bootstrapped.
 # Based on: https://docs.siderolabs.com/kubernetes-guides/cni/deploying-cilium
 resource "helm_release" "cilium" {
   depends_on = [
     talos_machine_bootstrap.this,
-    talos_cluster_kubeconfig.this,
-    helm_release.gateway_api_crds
+    talos_cluster_kubeconfig.this
   ]
 
   name       = "cilium"
