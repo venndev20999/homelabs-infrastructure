@@ -47,7 +47,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: main-gateway
-  namespace: test-app
+  namespace: default
 spec:
   gatewayClassName: cilium
   listeners:
