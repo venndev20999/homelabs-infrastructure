@@ -26,6 +26,14 @@ module "talos_cluster" {
   talos_version    = var.talos_version
 }
 
+module "argocd" {
+  source = "../../modules/argocd"
+
+  # Ensure ArgoCD waits for cluster health
+  depends_on      = [module.talos_cluster]
+  ingress_enabled = true
+}
+
 # # ── Outputs ────────────────────────────────────────────────────────────────────
 # output "talosconfig" {
 #   description = "Save to ~/.talos/config: terraform output -raw talosconfig > ~/.talos/config"

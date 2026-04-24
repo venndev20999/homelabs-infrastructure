@@ -170,6 +170,21 @@ resource "helm_release" "cilium" {
       }
       k8sServiceHost = "localhost"
       k8sServicePort = 7445
+      gatewayAPI = {
+        enabled = true
+      }
+      ingressController = {
+        enabled = true
+        loadbalancer = {
+          annotation = true
+        }
+      }
+      l2announcements = {
+        enabled = true
+      }
+      externalIPs = {
+        enabled = true
+      }
     })
   ]
 }
