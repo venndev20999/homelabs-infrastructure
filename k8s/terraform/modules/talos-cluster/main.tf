@@ -125,7 +125,8 @@ resource "local_file" "kubeconfig" {
 data "talos_cluster_health" "this" {
   depends_on = [
     talos_machine_configuration_apply.controlplane,
-    talos_machine_bootstrap.this
+    talos_machine_bootstrap.this,
+    helm_release.cilium
   ]
 
   client_configuration   = talos_machine_secrets.this.client_configuration
@@ -140,8 +141,7 @@ data "talos_cluster_health" "this" {
 resource "helm_release" "cilium" {
   depends_on = [
     talos_machine_bootstrap.this,
-    talos_cluster_kubeconfig.this,
-    data.talos_cluster_health.this
+    talos_cluster_kubeconfig.this
   ]
 
   name       = "cilium"
