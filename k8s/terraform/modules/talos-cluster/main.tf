@@ -30,6 +30,31 @@ data "talos_machine_configuration" "controlplane" {
         proxy = {
           disabled = true
         }
+        # Fix: Grant API Server permission to talk to Kubelets
+        inlineManifests = [
+          {
+            name = "kube-apiserver-to-kubelet-rbac"
+            contents = yamlencode({
+              apiVersion = "rbac.authorization.k8s.io/v1"
+              kind       = "ClusterRoleBinding"
+              metadata = {
+                name = "system:kube-apiserver-to-kubelet"
+              }
+              roleRef = {
+                apiGroup = "rbac.authorization.k8s.io"
+                kind       = "ClusterRole"
+                name       = "system:kube-apiserver-to-kubelet"
+              }
+              subjects = [
+                {
+                  apiGroup = "rbac.authorization.k8s.io"
+                  kind       = "User"
+                  name       = "apiserver-kubelet-client"
+                }
+              ]
+            })
+          }
+        ]
       }
     })
   ]
@@ -103,9 +128,10 @@ data "talos_cluster_health" "this" {
     talos_machine_bootstrap.this
   ]
 
-  client_configuration = talos_machine_secrets.this.client_configuration
-  control_plane_nodes  = var.controlplane_ips
-  endpoints            = var.controlplane_ips
+  client_configuration   = talos_machine_secrets.this.client_configuration
+  control_plane_nodes    = var.controlplane_ips
+  endpoints              = var.controlplane_ips
+  skip_kubernetes_checks = true # Allow Cilium to be installed while nodes are NotReady
 }
 
 # ── Deploy Cilium CNI ──────────────────────────────────────────────────────────

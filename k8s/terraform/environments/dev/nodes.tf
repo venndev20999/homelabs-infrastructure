@@ -55,28 +55,28 @@ variable "talos_iso_path" {
   default = "/var/iso/metal-amd64.iso"
 }
 
-module "masters" {
-  source = "git::ssh://git@github.com/venndev20999/homelabs-infrastructure-module.git//terraform/talos-instance"
-
-  for_each = { for n in local.talos_masters : n.name => n }
-
-  name       = each.value.name
-  ip_address = each.value.ip
-  memory     = each.value.memory
-  vcpus      = each.value.vcpus
-  disk_size  = each.value.disk_size
-  iso_path   = var.talos_iso_path
-}
-
-module "workers" {
-  source = "git::ssh://git@github.com/venndev20999/homelabs-infrastructure-module.git//terraform/talos-instance"
-
-  for_each = { for n in local.talos_workers : n.name => n }
-
-  name       = each.value.name
-  ip_address = each.value.ip
-  memory     = each.value.memory
-  vcpus      = each.value.vcpus
-  disk_size  = each.value.disk_size
-  iso_path   = var.talos_iso_path
-}
+# module "masters" {
+#   source = "git::ssh://git@github.com/venndev20999/homelabs-infrastructure-module.git//terraform/talos-instance"
+# 
+#   for_each = { for n in local.talos_masters : n.name => n }
+# 
+#   name       = each.value.name
+#   ip_address = each.value.ip
+#   memory     = each.value.memory
+#   vcpus      = each.value.vcpus
+#   disk_size  = each.value.disk_size
+#   iso_path   = var.talos_iso_path
+# }
+# 
+# module "workers" {
+#   source = "git::ssh://git@github.com/venndev20999/homelabs-infrastructure-module.git//terraform/talos-instance"
+# 
+#   for_each = { for n in local.talos_workers : n.name => n }
+# 
+#   name       = each.value.name
+#   ip_address = each.value.ip
+#   memory     = each.value.memory
+#   vcpus      = each.value.vcpus
+#   disk_size  = each.value.disk_size
+#   iso_path   = var.talos_iso_path
+# }
