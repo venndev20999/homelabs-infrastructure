@@ -179,10 +179,15 @@ resource "helm_release" "cilium" {
         }
         hostRoot = "/sys/fs/cgroup"
       }
-      k8sServiceHost = "localhost"
-      k8sServicePort = 7445
+      k8sServiceHost = var.controlplane_ips[0]
+      k8sServicePort = 6443
       gatewayAPI = {
         enabled = true
+      }
+      operator = {
+        gatewayAPI = {
+          enabled = true
+        }
       }
       ingressController = {
         enabled = true
