@@ -65,7 +65,7 @@ data "talos_machine_configuration" "controlplane" {
 }
 
 data "http" "gateway_api_crds" {
-  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml"
+  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml"
 }
 
 # Generate Worker Config
