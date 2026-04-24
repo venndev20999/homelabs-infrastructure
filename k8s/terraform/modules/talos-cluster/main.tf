@@ -192,6 +192,12 @@ resource "helm_release" "cilium" {
           enabled = true
         }
       }
+      ingressController = {
+        enabled = true
+        loadbalancer = {
+          annotation = true
+        }
+      }
       l2announcements = {
         enabled = true
       }
