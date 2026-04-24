@@ -18,41 +18,35 @@ resource "helm_release" "argocd" {
   ]
 }
 
-resource "kubernetes_manifest" "argocd_route" {
+resource "null_resource" "argocd_route" {
   count = var.ingress_enabled ? 1 : 0
 
-  manifest = {
-    apiVersion = "gateway.networking.k8s.io/v1"
-    kind       = "HTTPRoute"
-    metadata = {
-      name      = "argocd-route"
-      namespace = var.namespace
-    }
-    spec = {
-      parentRefs = [
-        {
-          name      = "main-gateway"
-          namespace = "default"
-        }
-      ]
-      rules = [
-        {
-          matches = [
-            {
-              path = {
-                type  = "PathPrefix"
-                value = "/"
-              }
-            }
-          ]
-          backendRefs = [
-            {
-              name = "argocd-server"
-              port = 80
-            }
-          ]
-        }
-      ]
-    }
+  depends_on = [helm_release.argocd]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      KUBECONFIG=${path.root}/output/kubeconfig kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd-route
+  namespace: ${var.namespace}
+spec:
+  parentRefs:
+  - name: main-gateway
+    namespace: default
+  hostnames:
+  - "argocd.vennpham.work"
+  - "argocd.vennpham.local"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: argocd-server
+      port: 80
+EOF
+    EOT
   }
 }
