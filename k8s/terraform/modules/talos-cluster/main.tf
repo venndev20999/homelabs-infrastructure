@@ -183,6 +183,9 @@ resource "helm_release" "cilium" {
       k8sServicePort = 6443
       gatewayAPI = {
         enabled = true
+        hostNetwork = {
+          enabled = true
+        }
       }
       operator = {
         gatewayAPI = {
