@@ -184,6 +184,10 @@ resource "helm_release" "cilium" {
       gatewayAPI = {
         enabled = true
       }
+      bpf = {
+        masquerade = true
+        lbExternalClusterIP = true
+      }
       operator = {
         gatewayAPI = {
           enabled = true
