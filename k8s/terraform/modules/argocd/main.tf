@@ -1,3 +1,15 @@
+# Create a secret for the external Redis password
+resource "null_resource" "argocd_redis_secret" {
+  provisioner "local-exec" {
+    command = <<EOT
+      KUBECONFIG=${path.root}/output/kubeconfig kubectl create secret generic argocd-redis \
+        --from-literal=password=redis123 \
+        -n ${var.namespace} \
+        --dry-run=client -o yaml | KUBECONFIG=${path.root}/output/kubeconfig kubectl apply -f -
+EOT
+  }
+}
+
 resource "helm_release" "argocd" {
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
@@ -6,6 +18,8 @@ resource "helm_release" "argocd" {
   namespace        = var.namespace
   create_namespace = true
 
+  depends_on = [null_resource.argocd_redis_secret]
+
   # Production Best Practices: Using External Redis and HA components
   values = [
     yamlencode({
@@ -13,10 +27,9 @@ resource "helm_release" "argocd" {
         logging = {
           level = "info"
         }
-        # External Redis configuration
+        # External Redis configuration for components that use global values
         redis = {
           address  = "192.168.122.203:6379"
-          password = "redis123"
         }
       }
       # Enable HA for core components
@@ -67,10 +80,11 @@ resource "helm_release" "argocd" {
       redis-ha = {
         enabled = false
       }
-      # Performance tuning
+      # Performance tuning and External Redis configuration
       configs = {
         cm = {
           "timeout.reconciliation" = "180s"
+          "redis.server"           = "192.168.122.203:6379"
         }
       }
     })
