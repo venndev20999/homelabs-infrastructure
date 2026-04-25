@@ -49,10 +49,10 @@ data "talos_machine_configuration" "controlplane" {
                 {
                   apiGroup = "rbac.authorization.k8s.io"
                   kind       = "User"
-                  name       = "apiserver-kubelet-client"
                 }
               ]
             })
+          }
         ]
       }
     })
