@@ -6,12 +6,17 @@ resource "helm_release" "argocd" {
   namespace        = var.namespace
   create_namespace = true
 
-  # Production Best Practices: High Availability and Resource Management
+  # Production Best Practices: Using External Redis and HA components
   values = [
     yamlencode({
       global = {
         logging = {
           level = "info"
+        }
+        # External Redis configuration
+        redis = {
+          address  = "192.168.122.203:6379"
+          password = "redis123"
         }
       }
       # Enable HA for core components
@@ -30,7 +35,7 @@ resource "helm_release" "argocd" {
       }
       server = {
         replicas = 2
-        extraArgs = ["--insecure"] # Keep insecure for internal routing behind Gateway
+        extraArgs = ["--insecure"]
         resources = {
           requests = {
             cpu    = "100m"
@@ -39,12 +44,6 @@ resource "helm_release" "argocd" {
           limits = {
             cpu    = "500m"
             memory = "512Mi"
-          }
-        }
-        metrics = {
-          enabled = true
-          serviceMonitor = {
-            enabled = false # Set to true if Prometheus operator is installed
           }
         }
       }
@@ -61,8 +60,12 @@ resource "helm_release" "argocd" {
           }
         }
       }
+      # Disable internal Redis components
+      redis = {
+        enabled = false
+      }
       redis-ha = {
-        enabled = true # High Availability Redis
+        enabled = false
       }
       # Performance tuning
       configs = {
@@ -75,14 +78,12 @@ resource "helm_release" "argocd" {
 }
 
 # ── Gateway API Routing ────────────────────────────────────────────────────────
-# Production best practice: Use ReferenceGrant for cross-namespace routing
 resource "null_resource" "argocd_route" {
   count = var.ingress_enabled ? 1 : 0
 
   depends_on = [helm_release.argocd]
 
   triggers = {
-    # Re-apply if any of these change
     namespace = var.namespace
     hostname  = "argocd.vennpham.work"
   }
