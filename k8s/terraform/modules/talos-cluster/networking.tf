@@ -42,6 +42,13 @@ spec:
     matchLabels:
       kubernetes.io/os: linux
 ---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
 # Default Gateway
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
