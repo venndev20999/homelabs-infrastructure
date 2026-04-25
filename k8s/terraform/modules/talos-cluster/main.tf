@@ -78,6 +78,22 @@ data "talos_machine_configuration" "worker" {
 
   docs     = false
   examples = false
+
+  # Patch: Disable Default CNI and Kube-Proxy for Cilium CNI installation
+  config_patches = [
+    yamlencode({
+      cluster = {
+        network = {
+          cni = {
+            name = "none"
+          }
+        }
+        proxy = {
+          disabled = true
+        }
+      }
+    })
+  ]
 }
 
 # Apply Controlplane Config
@@ -199,7 +215,7 @@ resource "helm_release" "cilium" {
       l2announcements = {
         enabled = true
       }
-      devices = ["enx+"] # Tell Cilium to look at your enx... interfaces
+      devices = ["en+"] # Match all en* interfaces (enp, enx, etc.)
       externalIPs = {
         enabled = true
       }
