@@ -139,7 +139,7 @@ resource "null_resource" "cilium_networking" {
 
   provisioner "local-exec" {
     # Apply the combined manifest using kubectl
-    command = "KUBECONFIG=${path.root}/output/kubeconfig echo '${local.networking_manifests}' | $(command -v kubectl || echo kubectl) apply -f -"
+    command = "export KUBECONFIG=${path.root}/output/kubeconfig && echo '${local.networking_manifests}' | $(command -v kubectl || echo kubectl) apply -f - --validate=false"
   }
 
   # Add a destroy provisioner to clean up resources if needed
