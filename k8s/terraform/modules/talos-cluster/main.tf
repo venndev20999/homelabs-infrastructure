@@ -55,6 +55,18 @@ data "talos_machine_configuration" "controlplane" {
           }
         ]
       }
+      machine = {
+        kubelet = {
+          extraConfig = {
+            containerLogMaxSize  = "50Mi"
+            containerLogMaxFiles = 3
+            evictionHard = {
+              "nodefs.available"  = "10%"
+              "imagefs.available" = "15%"
+            }
+          }
+        }
+      }
     })
   ]
 }
@@ -94,6 +106,18 @@ data "talos_machine_configuration" "worker" {
         }
         proxy = {
           disabled = true
+        }
+      }
+      machine = {
+        kubelet = {
+          extraConfig = {
+            containerLogMaxSize  = "50Mi"
+            containerLogMaxFiles = 3
+            evictionHard = {
+              "nodefs.available"  = "10%"
+              "imagefs.available" = "15%"
+            }
+          }
         }
       }
     })
