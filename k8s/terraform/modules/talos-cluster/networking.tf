@@ -39,8 +39,9 @@ spec:
   interfaces:
     - "^en.*"
   nodeSelector:
-    matchLabels:
-      kubernetes.io/os: linux
+    matchExpressions:
+      - key: node-role.kubernetes.io/control-plane
+        operator: DoesNotExist
   serviceSelector:
     matchLabels: {} # Match all services
 ---
