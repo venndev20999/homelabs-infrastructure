@@ -211,9 +211,9 @@ resource "helm_release" "envoy_gateway" {
   name             = "envoy-gateway"
   namespace        = "envoy-gateway-system"
   create_namespace = true
-  repository       = "https://gateway.envoyproxy.io/charts"
-  chart            = "envoy-gateway"
-  version          = "1.1.0" # Latest stable version
+  repository       = "oci://docker.io/envoyproxy"
+  chart            = "gateway-helm"
+  version          = "v1.1.0"
   wait             = true
 
   depends_on = [helm_release.cilium]
