@@ -3,7 +3,10 @@
 # This ensures a smooth 1-click apply even when CRDs are newly installed.
 
 resource "null_resource" "cilium_networking" {
-  depends_on = [helm_release.cilium]
+  depends_on = [
+    helm_release.cilium,
+    helm_release.envoy_gateway
+  ]
 
   triggers = {
     # Re-run if the manifest content changes

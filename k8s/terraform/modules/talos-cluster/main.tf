@@ -53,19 +53,23 @@ data "talos_machine_configuration" "controlplane" {
                 }
               ]
             })
-          },
-          {
-            name     = "gateway-api-crds"
-            contents = data.http.gateway_api_crds.response_body
-          }
         ]
       }
     })
   ]
 }
 
-data "http" "gateway_api_crds" {
-  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml"
+# ── Gateway API CRDs (Experimental v1.1.0) ────────────────────────────────────
+resource "null_resource" "gateway_api_crds" {
+  depends_on = [talos_machine_bootstrap.this]
+
+  triggers = {
+    url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/experimental-install.yaml"
+  }
+
+  provisioner "local-exec" {
+    command = "KUBECONFIG=${path.root}/output/kubeconfig $(command -v kubectl || echo kubectl) apply -f ${self.triggers.url}"
+  }
 }
 
 # Generate Worker Config
@@ -232,5 +236,8 @@ resource "helm_release" "envoy_gateway" {
   version          = "v1.1.0"
   wait             = true
 
-  depends_on = [helm_release.cilium]
+  depends_on = [
+    helm_release.cilium,
+    null_resource.gateway_api_crds
+  ]
 }
