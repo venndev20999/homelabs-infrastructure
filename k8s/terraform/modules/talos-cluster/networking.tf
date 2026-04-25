@@ -41,6 +41,8 @@ spec:
   nodeSelector:
     matchLabels:
       kubernetes.io/os: linux
+  serviceSelector:
+    matchLabels: {} # Match all services
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
