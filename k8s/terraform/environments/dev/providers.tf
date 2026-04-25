@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.14.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
   }
 
   # backend "s3" {
@@ -25,6 +29,10 @@ terraform {
 }
 
 provider "talos" {}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_token
+}
 
 provider "helm" {
   kubernetes {

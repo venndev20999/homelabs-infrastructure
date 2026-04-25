@@ -33,6 +33,18 @@ module "argocd" {
   ingress_enabled = true
 }
 
+module "cloudflare" {
+  source = "../../modules/cloudflare"
+
+  cloudflare_token      = var.cloudflare_token
+  cloudflare_zone_id    = var.cloudflare_zone_id
+  cloudflare_account_id = var.cloudflare_account_id
+  tunnel_secret         = var.cloudflare_tunnel_token
+
+  # Depends on cluster for agent deployment
+  depends_on = [module.talos_cluster]
+}
+
 # # ── Outputs ────────────────────────────────────────────────────────────────────
 # output "talosconfig" {
 #   description = "Save to ~/.talos/config: terraform output -raw talosconfig > ~/.talos/config"
