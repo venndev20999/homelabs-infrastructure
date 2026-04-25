@@ -1,38 +1,70 @@
-# ── Cilium Networking (1-Click Provisioning) ──────────────────────────────────
-# Using null_resource + kubectl to bypass Terraform's plan-time CRD validation.
-# This ensures a smooth 1-click apply even when CRDs are newly installed.
-
-resource "null_resource" "cilium_networking" {
-  depends_on = [
-    helm_release.cilium,
-    helm_release.envoy_gateway
-  ]
-
-  triggers = {
-    # Re-run if the manifest content changes
-    manifest_hash = sha256(local.networking_manifests)
-  }
-
-  provisioner "local-exec" {
-    command = "KUBECONFIG=${path.root}/output/kubeconfig $(command -v kubectl || echo kubectl) apply -f - <<EOF\n${local.networking_manifests}\nEOF"
-  }
-}
-
 locals {
+  # We use a single YAML manifest for all Cilium and Gateway API resources.
+  # This ensures a smooth 1-click apply even when CRDs are newly installed.
+
   networking_manifests = <<EOT
 ---
-# Cilium LoadBalancer IP Pool
-apiVersion: "cilium.io/v2alpha1"
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test
+  namespace: test-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-test
+  template:
+    metadata:
+      labels:
+        app: nginx-test
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-test-svc
+  namespace: test-app
+spec:
+  selector:
+    app: nginx-test
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-gateway-from-default
+  namespace: test-app
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: default
+  to:
+  - group: ""
+    kind: Service
+---
+apiVersion: cilium.io/v2alpha1
 kind: CiliumLoadBalancerIPPool
 metadata:
   name: "homelab-pool"
 spec:
-  blocks:
+  cidrs:
     - cidr: "192.168.122.200/29"
-  serviceSelector:
-    matchLabels: {} # Match all services
 ---
-# Cilium L2 Announcement Policy
 apiVersion: "cilium.io/v2alpha1"
 kind: CiliumL2AnnouncementPolicy
 metadata:
@@ -55,7 +87,6 @@ metadata:
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
 ---
-# Default Gateway
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -65,33 +96,11 @@ spec:
   gatewayClassName: eg
   listeners:
   - name: http-work
-    protocol: HTTP
     port: 80
-    hostname: "*.vennpham.work"
+    protocol: HTTP
     allowedRoutes:
       namespaces:
         from: All
-  - name: http-local
-    protocol: HTTP
-    port: 80
-    hostname: "*.vennpham.local"
-    allowedRoutes:
-      namespaces:
-        from: All
----
-apiVersion: gateway.networking.k8s.io/v1beta1
-kind: ReferenceGrant
-metadata:
-  name: allow-gateway-from-default
-  namespace: test-app
-spec:
-  from:
-  - group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    namespace: default
-  to:
-  - group: ""
-    kind: Service
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -115,4 +124,27 @@ spec:
       namespace: test-app
       port: 80
 EOT
+}
+
+resource "null_resource" "cilium_networking" {
+  depends_on = [
+    helm_release.cilium,
+    helm_release.envoy_gateway
+  ]
+
+  triggers = {
+    # Re-run if the manifest content changes
+    manifest_hash = sha256(local.networking_manifests)
+  }
+
+  provisioner "local-exec" {
+    # Apply the combined manifest using kubectl
+    command = "KUBECONFIG=${path.root}/output/kubeconfig echo '${local.networking_manifests}' | $(command -v kubectl || echo kubectl) apply -f -"
+  }
+
+  # Add a destroy provisioner to clean up resources if needed
+  # provisioner "local-exec" {
+  #   when    = destroy
+  #   command = "KUBECONFIG=${path.root}/output/kubeconfig echo '${local.networking_manifests}' | $(command -v kubectl || echo kubectl) delete -f - --ignore-not-found"
+  # }
 }
