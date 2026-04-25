@@ -72,8 +72,6 @@ spec:
     allowedRoutes:
       namespaces:
         from: All
-EOT
-}
 ---
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
@@ -110,3 +108,5 @@ spec:
     - name: nginx-test-svc
       namespace: test-app
       port: 80
+EOT
+}
