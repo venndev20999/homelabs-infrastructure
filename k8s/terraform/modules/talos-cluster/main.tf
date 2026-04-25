@@ -182,7 +182,7 @@ resource "helm_release" "cilium" {
       k8sServiceHost = var.controlplane_ips[0]
       k8sServicePort = 6443
       gatewayAPI = {
-        enabled = true
+        enabled = false
       }
       bpf = {
         masquerade = true
@@ -190,7 +190,7 @@ resource "helm_release" "cilium" {
       }
       operator = {
         gatewayAPI = {
-          enabled = true
+          enabled = false
         }
       }
       ingressController = {
@@ -205,4 +205,16 @@ resource "helm_release" "cilium" {
       }
     })
   ]
+}
+
+resource "helm_release" "envoy_gateway" {
+  name             = "envoy-gateway"
+  namespace        = "envoy-gateway-system"
+  create_namespace = true
+  repository       = "https://gateway.envoyproxy.io/charts"
+  chart            = "envoy-gateway"
+  version          = "1.1.0" # Latest stable version
+  wait             = true
+
+  depends_on = [helm_release.cilium]
 }

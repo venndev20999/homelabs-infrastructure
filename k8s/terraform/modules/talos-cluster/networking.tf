@@ -49,7 +49,7 @@ metadata:
   name: main-gateway
   namespace: default
 spec:
-  gatewayClassName: cilium
+  gatewayClassName: eg
   listeners:
   - name: http-work
     protocol: HTTP
