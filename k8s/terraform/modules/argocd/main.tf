@@ -3,7 +3,7 @@ resource "null_resource" "argocd_redis_secret" {
   provisioner "local-exec" {
     command = <<EOT
       KUBECONFIG=${path.root}/output/kubeconfig kubectl create secret generic argocd-redis \
-        --from-literal=password=redis123 \
+        --from-literal=auth=redis123 \
         -n ${var.namespace} \
         --dry-run=client -o yaml | KUBECONFIG=${path.root}/output/kubeconfig kubectl apply -f -
 EOT
@@ -85,6 +85,10 @@ resource "helm_release" "argocd" {
         cm = {
           "timeout.reconciliation" = "180s"
           "redis.server"           = "192.168.122.203:6379"
+        }
+        # Correctly set the redis server for cmd-params
+        params = {
+          "redis.server" = "192.168.122.203:6379"
         }
       }
     })
