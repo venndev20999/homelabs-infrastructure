@@ -74,3 +74,39 @@ spec:
         from: All
 EOT
 }
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-gateway-from-default
+  namespace: test-app
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: default
+  to:
+  - group: ""
+    kind: Service
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: nginx-test-route
+  namespace: default
+spec:
+  parentRefs:
+  - name: main-gateway
+    namespace: default
+  hostnames:
+  - "test.vennpham.work"
+  - "test.vennpham.local"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: nginx-test-svc
+      namespace: test-app
+      port: 80
