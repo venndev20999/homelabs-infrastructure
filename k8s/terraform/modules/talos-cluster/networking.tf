@@ -81,7 +81,7 @@ metadata:
 spec:
   from:
   - group: gateway.networking.k8s.io
-    kind: Gateway
+    kind: HTTPRoute
     namespace: default
   to:
   - group: ""
