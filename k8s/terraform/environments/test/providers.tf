@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.14.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
   }
 
   # backend "s3" {
@@ -26,6 +30,10 @@ terraform {
 
 provider "talos" {}
 
+provider "cloudflare" {
+  api_token = var.cloudflare_token
+}
+
 provider "helm" {
   kubernetes {
     host                   = module.talos_cluster.kubeconfig_host
@@ -33,4 +41,11 @@ provider "helm" {
     client_key             = base64decode(module.talos_cluster.kubeconfig_client_key)
     cluster_ca_certificate = base64decode(module.talos_cluster.kubeconfig_ca_cert)
   }
+}
+
+provider "kubernetes" {
+  host                   = module.talos_cluster.kubeconfig_host
+  client_certificate     = base64decode(module.talos_cluster.kubeconfig_client_cert)
+  client_key             = base64decode(module.talos_cluster.kubeconfig_client_key)
+  cluster_ca_certificate = base64decode(module.talos_cluster.kubeconfig_ca_cert)
 }

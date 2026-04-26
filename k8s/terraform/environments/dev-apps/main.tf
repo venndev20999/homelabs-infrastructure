@@ -14,7 +14,7 @@ resource "argocd_application" "root_app" {
     source {
       repo_url        = var.repo_url
       target_revision = var.target_revision
-      path            = "k8s/apps/dev" # This folder will contain your other App manifests
+      path            = "infrastructure/k8s/argocd" # This folder contains your ApplicationSet manifests
       directory {
         recurse = true
       }

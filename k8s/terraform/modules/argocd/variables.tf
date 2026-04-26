@@ -15,3 +15,15 @@ variable "ingress_enabled" {
   description = "Whether to enable ingress for ArgoCD."
   default     = false
 }
+
+variable "hostnames" {
+  type        = list(string)
+  description = "List of hostnames for ArgoCD ingress"
+  default     = ["argocd.vennpham.work", "argocd.vennpham.local"]
+}
+
+variable "redis_db" {
+  type        = number
+  description = "Redis database index to use (e.g., 0 for dev, 1 for test)"
+  default     = 0
+}

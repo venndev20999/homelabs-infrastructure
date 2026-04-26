@@ -48,7 +48,7 @@ resource "helm_release" "argocd" {
       }
       server = {
         replicas = 2
-        extraArgs = ["--insecure"]
+        extraArgs = ["--insecure", "--redisdb", "${var.redis_db}"]
         resources = {
           requests = {
             cpu    = "100m"
@@ -85,6 +85,7 @@ resource "helm_release" "argocd" {
         cm = {
           "timeout.reconciliation" = "180s"
           "redis.server"           = "192.168.122.203:6379"
+          "redis.db"               = "${var.redis_db}"
         }
         # Correctly set the redis server for cmd-params
         params = {
@@ -103,7 +104,7 @@ resource "null_resource" "argocd_route" {
 
   triggers = {
     namespace = var.namespace
-    hostname  = "argocd.vennpham.work"
+    hostname  = var.hostnames[0]
   }
 
   provisioner "local-exec" {
@@ -135,8 +136,7 @@ spec:
   - name: main-gateway
     namespace: default
   hostnames:
-  - "argocd.vennpham.work"
-  - "argocd.vennpham.local"
+${join("\n", [for h in var.hostnames : "  - \"${h}\""])}
   rules:
   - matches:
     - path:

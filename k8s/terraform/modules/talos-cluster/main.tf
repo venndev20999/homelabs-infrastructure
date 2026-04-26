@@ -42,13 +42,13 @@ data "talos_machine_configuration" "controlplane" {
               }
               roleRef = {
                 apiGroup = "rbac.authorization.k8s.io"
-                kind       = "ClusterRole"
-                name       = "system:kube-apiserver-to-kubelet"
+                kind     = "ClusterRole"
+                name     = "system:kube-apiserver-to-kubelet"
               }
               subjects = [
                 {
                   apiGroup = "rbac.authorization.k8s.io"
-                  kind       = "User"
+                  kind     = "User"
                 }
               ]
             })
@@ -64,6 +64,7 @@ data "talos_machine_configuration" "controlplane" {
               "nodefs.available"  = "10%"
               "imagefs.available" = "15%"
             }
+            readOnlyPort = 10255
           }
         }
       }
@@ -117,6 +118,7 @@ data "talos_machine_configuration" "worker" {
               "nodefs.available"  = "10%"
               "imagefs.available" = "15%"
             }
+            readOnlyPort = 10255
           }
         }
       }
@@ -229,7 +231,7 @@ resource "helm_release" "cilium" {
         enabled = false
       }
       bpf = {
-        masquerade = true
+        masquerade          = true
         lbExternalClusterIP = true
       }
       operator = {
@@ -242,6 +244,12 @@ resource "helm_release" "cilium" {
       }
       l2announcements = {
         enabled = true
+      }
+      prometheus = {
+        enabled = true
+        serviceMonitor = {
+          enabled = true
+        }
       }
       devices = ["en+"] # Match all en* interfaces (enp, enx, etc.)
       externalIPs = {
@@ -260,8 +268,50 @@ resource "helm_release" "envoy_gateway" {
   version          = "v1.1.0"
   wait             = true
 
+  set {
+    name  = "deployment.prometheus.enabled"
+    value = "true"
+  }
+
   depends_on = [
     helm_release.cilium,
     null_resource.gateway_api_crds
+  ]
+}
+
+# ── Deploy Prometheus Stack ──────────────────────────────────────────────────
+resource "helm_release" "prometheus" {
+  name             = "prometheus"
+  namespace        = "monitoring"
+  create_namespace = true
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "kube-prometheus-stack"
+  version          = "60.0.1"
+  wait             = false
+
+  depends_on = [
+    helm_release.cilium,
+    talos_cluster_kubeconfig.this
+  ]
+
+  values = [
+    yamlencode({
+      prometheus = {
+        prometheusSpec = {
+          serviceMonitorSelectorNilUsesHelmValues = false
+          podMonitorSelectorNilUsesHelmValues     = false
+          ruleSelectorNilUsesHelmValues           = false
+        }
+      }
+      grafana = {
+        enabled = true
+      }
+      kubelet = {
+        enabled = true
+        serviceMonitor = {
+          https = false # Talos kubelet uses http on 10255
+        }
+      }
+    })
   ]
 }

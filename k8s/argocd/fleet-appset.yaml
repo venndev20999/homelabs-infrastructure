@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: microservices-fleet
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - name: test-python-app
+                  repo: https://github.com/your-org/test-python-app.git
+          - list:
+              elements:
+                - env: dev
+                  cluster: https://kubernetes.default.svc
+                - env: prod
+                  cluster: https://kubernetes.default.svc
+  template:
+    metadata:
+      name: '{{name}}-{{env}}'
+    spec:
+      project: default
+      source:
+        repoURL: '{{repo}}'
+        targetRevision: HEAD
+        path: 'k8s/overlays/{{env}}'
+      destination:
+        server: '{{cluster}}'
+        namespace: '{{name}}-{{env}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
