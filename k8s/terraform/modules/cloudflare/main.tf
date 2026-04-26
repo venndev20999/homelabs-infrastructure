@@ -12,109 +12,78 @@ terraform {
 }
 
 # ── Cloudflare DNS Records ───────────────────────────────────────────────────
-# Point subdomains to the tunnel
-resource "cloudflare_record" "wildcard_cname" {
+# Managed Dynamic Records
+resource "cloudflare_record" "managed_records" {
+  for_each = var.dns_records
+
   zone_id = var.cloudflare_zone_id
-  name    = "*"
-  value   = "${var.tunnel_id}.cfargotunnel.com"
-  type    = "CNAME"
-  proxied = true
+  name    = each.key
+  content = each.value.value # Updated from 'value' to 'content' to fix deprecation
+  type    = each.value.type
+  proxied = each.value.proxied
 }
 
-resource "cloudflare_record" "root_cname" {
+# Default Tunnel CNAMEs (if not provided in dns_records)
+resource "cloudflare_record" "tunnel_root" {
+  count   = contains(keys(var.dns_records), "@") ? 0 : 1
   zone_id = var.cloudflare_zone_id
   name    = "@"
-  value   = "${var.tunnel_id}.cfargotunnel.com"
+  content = "${var.tunnel_id}.cfargotunnel.com"
   type    = "CNAME"
   proxied = true
 }
 
-# ── Cloudflare Tunnel Configuration (Remote) ─────────────────────────────────
-# This maps hostnames to your internal Gateway IP
-resource "cloudflare_tunnel_config" "homelab" {
+resource "cloudflare_record" "tunnel_wildcard" {
+  count   = contains(keys(var.dns_records), "*") ? 0 : 1
+  zone_id = var.cloudflare_zone_id
+  name    = "*"
+  content = "${var.tunnel_id}.cfargotunnel.com"
+  type    = "CNAME"
+  proxied = true
+}
+
+# ── Cloudflare Zero Trust Tunnel Configuration (Modern) ──────────────────────
+resource "cloudflare_zero_trust_tunnel_cloudflared_config" "platform_tunnel" {
+  count = var.manage_tunnel_config ? 1 : 0
+
   account_id = var.cloudflare_account_id
   tunnel_id  = var.tunnel_id
 
   config {
-    # Route all subdomains to the shared Envoy Gateway
-    ingress_rule {
-      hostname = "*.${var.domain}"
-      service  = "http://${var.gateway_ip}:80"
-    }
-    
-    # Route root domain if needed
-    ingress_rule {
-      hostname = var.domain
-      service  = "http://${var.gateway_ip}:80"
+    warp_routing {
+      enabled = true
     }
 
-    # Catch-all rule (required)
+    # 1. Dynamic Ingress Rules (VMs, external services)
+    dynamic "ingress_rule" {
+      for_each = var.ingress_rules
+      content {
+        hostname = ingress_rule.value.hostname
+        service  = ingress_rule.value.service
+        path     = ingress_rule.value.path
+      }
+    }
+
+    # 2. Default K8s Rule (if gateway_ip is provided)
+    dynamic "ingress_rule" {
+      for_each = var.gateway_ip != "" ? [1] : []
+      content {
+        hostname = "*.${var.domain}"
+        service  = "http://${var.gateway_ip}:80"
+      }
+    }
+
+    dynamic "ingress_rule" {
+      for_each = var.gateway_ip != "" ? [1] : []
+      content {
+        hostname = var.domain
+        service  = "http://${var.gateway_ip}:80"
+      }
+    }
+
+    # 3. Catch-all rule (required)
     ingress_rule {
       service = "http_status:404"
-    }
-  }
-}
-
-# ── Kubernetes Deployment ────────────────────────────────────────────────────
-# Runs the cloudflared agent in your cluster
-resource "kubernetes_deployment" "cloudflared" {
-  metadata {
-    name      = "cloudflared"
-    namespace = "kube-system"
-    labels = {
-      app = "cloudflared"
-    }
-  }
-
-  spec {
-    replicas = 2 # High Availability
-
-    selector {
-      match_labels = {
-        app = "cloudflared"
-      }
-    }
-
-    template {
-      metadata {
-        labels = {
-          app = "cloudflared"
-        }
-      }
-
-      spec {
-        container {
-          name  = "cloudflared"
-          image = "cloudflare/cloudflared:latest"
-          args  = [
-            "tunnel", 
-            "--no-autoupdate", 
-            "run", 
-            "--token", 
-            var.tunnel_secret
-          ]
-
-          liveness_probe {
-            http_get {
-              path = "/ready"
-              port = 2000
-            }
-            initial_delay_seconds = 10
-            period_seconds        = 10
-          }
-          
-          resources {
-            limits = {
-              cpu    = "500m"
-              memory = "256Mi"
-            }
-            requests = {
-              cpu    = "100m"
-              memory = "128Mi"
-            }
-          }
-        }
-      }
     }
   }
 }
