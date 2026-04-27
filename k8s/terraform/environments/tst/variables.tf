@@ -26,31 +26,8 @@ variable "talos_version" {
   default     = "v1.7.0"
 }
 
-# ── Cloudflare Configuration ──────────────────────────────────────────────────
-variable "cloudflare_token" {
-  type        = string
-  description = "Cloudflare API Token"
-  sensitive   = true
-}
-
-variable "cloudflare_zone_id" {
-  type        = string
-  description = "Cloudflare Zone ID"
-}
-
-variable "cloudflare_account_id" {
-  type        = string
-  description = "Cloudflare Account ID"
-}
-
-variable "cloudflare_tunnel_token" {
-  type        = string
-  description = "Cloudflare Tunnel Token"
-  sensitive   = true
-}
-
 variable "env_prefix" {
   type        = string
   description = "Environment prefix for hostnames"
-  default     = "dev"
+  default     = "tst"
 }
