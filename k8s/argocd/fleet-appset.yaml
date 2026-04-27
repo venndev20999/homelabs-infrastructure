@@ -10,8 +10,8 @@ spec:
         generators:
           - list:
               elements:
-                - name: test-python-app
-                  repo: https://github.com/venndev20999/test-python-app.git
+                - name: python-test-app
+                  repo: https://github.com/venndev20999/python-test-app.git
           - list:
               elements:
                 - env: dev
