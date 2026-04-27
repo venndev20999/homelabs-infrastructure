@@ -10,11 +10,11 @@
 #   make dev kubeconfig
 #   make dev console
 #
-# Environments: dev | staging | prod
+# Environments: dev | tst | staging | prod
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Config ────────────────────────────────────────────────────────────────────
-ENVIRONMENTS  = dev stg prd
+ENVIRONMENTS  = dev tst stg prd
 TF_ROOT      := $(shell pwd)   # must run from terraform/ directory
 
 # ── Detect environment from first target ──────────────────────────────────────
@@ -143,6 +143,6 @@ help:
 	@echo "  make <env> purge          — 🔥 Remove all local state and lock files"
 	@echo "  make <env> purge-apply    — 🔥 Radical reset: purge, init, then apply"
 	@echo ""
-	@echo "  Environments: dev | staging | prod"
+	@echo "  Environments: dev | tst | staging | prod"
 	@echo "  Example: make dev init && make dev plan && make dev apply"
 	@echo ""
