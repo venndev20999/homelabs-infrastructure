@@ -246,9 +246,9 @@ resource "helm_release" "cilium" {
         enabled = true
       }
       prometheus = {
-        enabled = true
+        enabled = false
         serviceMonitor = {
-          enabled        = true
+          enabled        = false
           trustCRDsExist = true
         }
       }
@@ -271,7 +271,7 @@ resource "helm_release" "envoy_gateway" {
 
   set {
     name  = "deployment.prometheus.enabled"
-    value = "true"
+    value = "false"
   }
 
   values = [
@@ -294,38 +294,38 @@ resource "helm_release" "envoy_gateway" {
 }
 
 # ── Deploy Prometheus Stack ──────────────────────────────────────────────────
-resource "helm_release" "prometheus" {
-  name             = "prometheus"
-  namespace        = "monitoring"
-  create_namespace = true
-  repository       = "https://prometheus-community.github.io/helm-charts"
-  chart            = "kube-prometheus-stack"
-  version          = "60.0.1"
-  wait             = false
-
-  depends_on = [
-    helm_release.cilium,
-    talos_cluster_kubeconfig.this
-  ]
-
-  values = [
-    yamlencode({
-      prometheus = {
-        prometheusSpec = {
-          serviceMonitorSelectorNilUsesHelmValues = false
-          podMonitorSelectorNilUsesHelmValues     = false
-          ruleSelectorNilUsesHelmValues           = false
-        }
-      }
-      grafana = {
-        enabled = true
-      }
-      kubelet = {
-        enabled = true
-        serviceMonitor = {
-          https = false # Talos kubelet uses http on 10255
-        }
-      }
-    })
-  ]
-}
+# resource "helm_release" "prometheus" {
+#   name             = "prometheus"
+#   namespace        = "monitoring"
+#   create_namespace = true
+#   repository       = "https://prometheus-community.github.io/helm-charts"
+#   chart            = "kube-prometheus-stack"
+#   version          = "60.0.1"
+#   wait             = false
+# 
+#   depends_on = [
+#     helm_release.cilium,
+#     talos_cluster_kubeconfig.this
+#   ]
+# 
+#   values = [
+#     yamlencode({
+#       prometheus = {
+#         prometheusSpec = {
+#           serviceMonitorSelectorNilUsesHelmValues = false
+#           podMonitorSelectorNilUsesHelmValues     = false
+#           ruleSelectorNilUsesHelmValues           = false
+#         }
+#       }
+#       grafana = {
+#         enabled = true
+#       }
+#       kubelet = {
+#         enabled = true
+#         serviceMonitor = {
+#           https = false # Talos kubelet uses http on 10255
+#         }
+#       }
+#     })
+#   ]
+# }
