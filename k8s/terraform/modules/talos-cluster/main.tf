@@ -248,7 +248,8 @@ resource "helm_release" "cilium" {
       prometheus = {
         enabled = true
         serviceMonitor = {
-          enabled = true
+          enabled        = true
+          trustCRDsExist = true
         }
       }
       devices = ["en+"] # Match all en* interfaces (enp, enx, etc.)
