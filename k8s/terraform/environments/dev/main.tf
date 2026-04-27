@@ -32,19 +32,19 @@ module "argocd" {
   ingress_enabled = true
 }
 
-module "cloudflare" {
-  source                = "../../modules/cloudflare"
-  cloudflare_token      = var.cloudflare_token
-  cloudflare_zone_id    = var.cloudflare_zone_id
-  cloudflare_account_id = var.cloudflare_account_id
-  tunnel_secret         = var.cloudflare_tunnel_token
-  domain                = "vennpham.work"
-  gateway_ip            = "192.168.122.201"
-  enable_k8s_agent      = true
+# module "cloudflare" {
+#   source                = "../../modules/cloudflare"
+#   cloudflare_token      = var.cloudflare_token
+#   cloudflare_zone_id    = var.cloudflare_zone_id
+#   cloudflare_account_id = var.cloudflare_account_id
+#   tunnel_secret         = var.cloudflare_tunnel_token
+#   domain                = "vennpham.work"
+#   gateway_ip            = "192.168.122.201"
+#   enable_k8s_agent      = true
 
-  # Depends on cluster for agent deployment
-  depends_on = [module.talos_cluster]
-}
+#   # Depends on cluster for agent deployment
+#   depends_on = [module.talos_cluster]
+# }
 
 # # ── Outputs ────────────────────────────────────────────────────────────────────
 # output "talosconfig" {
