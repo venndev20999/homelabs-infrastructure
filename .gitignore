@@ -79,3 +79,4 @@ sshconfig
 # ── Local Testing & Temporary Modules ────────────────────────────────────────
 k8s/terraform/environments/test-tmp/
 k8s/terraform/modules/cloudflare/
+*.terraform.lock.hcl

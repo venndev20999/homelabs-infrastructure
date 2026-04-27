@@ -13,7 +13,7 @@ variable "repo_url" {
 variable "target_revision" {
   type        = string
   description = "Git branch or tag to track"
-  default     = "ft/dev"
+  default     = "monitoring"
 }
 
 variable "github_token" {

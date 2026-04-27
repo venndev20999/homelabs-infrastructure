@@ -26,31 +26,9 @@ variable "talos_version" {
   default     = "v1.7.0"
 }
 
-# ── Cloudflare Configuration ──────────────────────────────────────────────────
-variable "cloudflare_token" {
+variable "lb_cidr" {
   type        = string
-  description = "Cloudflare API Token"
-  sensitive   = true
+  description = "CIDR for LoadBalancer IP Pool"
+  default     = "192.168.122.200/29"
 }
 
-variable "cloudflare_zone_id" {
-  type        = string
-  description = "Cloudflare Zone ID"
-}
-
-variable "cloudflare_account_id" {
-  type        = string
-  description = "Cloudflare Account ID"
-}
-
-variable "cloudflare_tunnel_token" {
-  type        = string
-  description = "Cloudflare Tunnel Token"
-  sensitive   = true
-}
-
-variable "env_prefix" {
-  type        = string
-  description = "Environment prefix for hostnames"
-  default     = "dev"
-}

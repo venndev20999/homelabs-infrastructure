@@ -14,7 +14,7 @@ resource "argocd_application" "root_app" {
     source {
       repo_url        = var.repo_url
       target_revision = var.target_revision
-      path            = "infrastructure/k8s/argocd" # This folder contains your ApplicationSet manifests
+      path            = "k8s/argocd" # This folder contains your ApplicationSet manifests
       directory {
         recurse = true
       }
@@ -43,29 +43,29 @@ resource "argocd_application" "root_app" {
   }
 }
 
-# This registers your "Test Cluster" into the "Dev ArgoCD"
-resource "kubernetes_secret" "test_cluster" {
-  metadata {
-    name      = "test-cluster-secret"
-    namespace = "argocd"
-    labels = {
-      "argocd.argoproj.io/secret-type" = "cluster"
-      "environment"                    = "test" # Label for discovery
-    }
-  }
+# # This registers your "Test Cluster" into the "Dev ArgoCD"
+# resource "kubernetes_secret" "test_cluster" {
+#   metadata {
+#     name      = "test-cluster-secret"
+#     namespace = "argocd"
+#     labels = {
+#       "argocd.argoproj.io/secret-type" = "cluster"
+#       "environment"                    = "test" # Label for discovery
+#     }
+#   }
 
-  data = {
-    name   = "test-cluster"
-    server = "https://<TEST_CLUSTER_API_ENDPOINT>:6443"
-    config = jsonencode({
-      bearerToken = "<SERVICE_ACCOUNT_TOKEN_FROM_TEST_CLUSTER>"
-      tlsClientConfig = {
-        insecure = false
-        caData   = "<BASE64_CA_CERT_FROM_TEST_CLUSTER>"
-      }
-    })
-  }
-}
+#   data = {
+#     name   = "test-cluster"
+#     server = "https://<TEST_CLUSTER_API_ENDPOINT>:6443"
+#     config = jsonencode({
+#       bearerToken = "<SERVICE_ACCOUNT_TOKEN_FROM_TEST_CLUSTER>"
+#       tlsClientConfig = {
+#         insecure = false
+#         caData   = "<BASE64_CA_CERT_FROM_TEST_CLUSTER>"
+#       }
+#     })
+#   }
+# }
 
 # 🚀 Credential Template for all repositories in the organization
 resource "kubernetes_secret" "github_repo_creds" {

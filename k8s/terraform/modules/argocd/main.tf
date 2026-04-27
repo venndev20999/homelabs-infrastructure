@@ -18,6 +18,9 @@ resource "helm_release" "argocd" {
   namespace        = var.namespace
   create_namespace = true
 
+  timeout = 600
+  wait    = true
+
   depends_on = [null_resource.argocd_redis_secret]
 
   # Production Best Practices: Using External Redis and HA components
@@ -29,12 +32,12 @@ resource "helm_release" "argocd" {
         }
         # External Redis configuration for components that use global values
         redis = {
-          address  = "192.168.122.203:6379"
+          address = "192.168.122.203:6379"
         }
       }
       # Enable HA for core components
       controller = {
-        replicas = 2
+        replicas = 3
         resources = {
           requests = {
             cpu    = "200m"
@@ -47,8 +50,8 @@ resource "helm_release" "argocd" {
         }
       }
       server = {
-        replicas = 2
-        extraArgs = ["--insecure", "--redisdb", "${var.redis_db}"]
+        replicas  = 3
+        extraArgs = ["--insecure"]
         resources = {
           requests = {
             cpu    = "100m"
@@ -61,7 +64,7 @@ resource "helm_release" "argocd" {
         }
       }
       repoServer = {
-        replicas = 2
+        replicas = 3
         resources = {
           requests = {
             cpu    = "100m"

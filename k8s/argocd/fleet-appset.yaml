@@ -27,7 +27,7 @@ spec:
       project: default
       source:
         repoURL: '{{repo}}'
-        targetRevision: HEAD
+        targetRevision: dev
         path: 'k8s/overlays/{{env}}'
       destination:
         # 🚀 Using 'name' instead of 'server' is best practice for multi-cluster

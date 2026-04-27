@@ -269,19 +269,11 @@ resource "helm_release" "envoy_gateway" {
   version          = "v1.1.0"
   wait             = true
 
-  set {
-    name  = "deployment.prometheus.enabled"
-    value = "false"
-  }
-
   values = [
     yamlencode({
-      # This configuration ensures that Envoy Gateway stays stable after reboots
-      # by having multiple replicas and allowing cross-node traffic.
       config = {
         gateway = {
-          # Setting replicas to 3 ensures at least 3 nodes have a local pod
-          replicas = 3
+          replicas = 5
         }
       }
     })

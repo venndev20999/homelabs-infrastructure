@@ -24,6 +24,7 @@ module "talos_cluster" {
   controlplane_ips = var.controlplane_ips
   worker_ips       = var.worker_ips
   talos_version    = var.talos_version
+  lb_cidr          = var.lb_cidr
 }
 
 module "argocd" {
@@ -42,19 +43,10 @@ module "argocd" {
 #   cloudflare_token      = var.cloudflare_token
 #   cloudflare_zone_id    = var.cloudflare_zone_id
 #   cloudflare_account_id = var.cloudflare_account_id
-#   tunnel_id             = "aa3d250f-e275-4674-a1a3-9bcfe666286a"
 #   tunnel_secret         = var.cloudflare_tunnel_token
 #   domain                = "vennpham.work"
-#   gateway_ip            = "192.168.122.201" # Dev Control Plane IP
+#   gateway_ip            = "192.168.122.201"
 #   enable_k8s_agent      = true
-
-#   dns_records = {
-#     "argocd-${var.env_prefix}" = {
-#       type    = "CNAME"
-#       value   = "aa3d250f-e275-4674-a1a3-9bcfe666286a.cfargotunnel.com"
-#       proxied = true
-#     }
-#   }
 
 #   # Depends on cluster for agent deployment
 #   depends_on = [module.talos_cluster]
