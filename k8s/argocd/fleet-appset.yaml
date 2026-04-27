@@ -16,10 +16,10 @@ spec:
               elements:
                 - env: dev
                   cluster_name: in-cluster    # Deploys to the cluster ArgoCD is running on
-                - env: test
-                  cluster_name: test-cluster  # Matches the 'name' in your Terraform secret
-                - env: prod
-                  cluster_name: prod-cluster  # Placeholder for your future prod cluster
+                # - env: test
+                #   cluster_name: test-cluster  # Matches the 'name' in your Terraform secret
+                # - env: prod
+                #   cluster_name: prod-cluster  # Placeholder for your future prod cluster
   template:
     metadata:
       name: '{{name}}-{{env}}'
