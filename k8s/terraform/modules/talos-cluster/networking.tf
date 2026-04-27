@@ -63,7 +63,7 @@ metadata:
   name: "homelab-pool"
 spec:
   cidrs:
-    - cidr: "192.168.122.200/29"
+    - cidr: "${var.lb_cidr}"
 ---
 apiVersion: "cilium.io/v2alpha1"
 kind: CiliumL2AnnouncementPolicy

@@ -26,3 +26,9 @@ variable "talos_version" {
   default     = "v1.7.0"
 }
 
+variable "lb_cidr" {
+  type        = string
+  description = "CIDR for LoadBalancer IP Pool"
+  default     = "192.168.122.200/29"
+}
+
