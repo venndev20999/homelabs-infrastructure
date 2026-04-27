@@ -260,6 +260,16 @@ resource "helm_release" "envoy_gateway" {
   version          = "v1.1.0"
   wait             = true
 
+  values = [
+    yamlencode({
+      config = {
+        gateway = {
+          replicas = 5
+        }
+      }
+    })
+  ]
+
   depends_on = [
     helm_release.cilium,
     null_resource.gateway_api_crds

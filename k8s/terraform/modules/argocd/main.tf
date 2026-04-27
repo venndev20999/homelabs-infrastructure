@@ -29,12 +29,12 @@ resource "helm_release" "argocd" {
         }
         # External Redis configuration for components that use global values
         redis = {
-          address  = "192.168.122.203:6379"
+          address = "192.168.122.203:6379"
         }
       }
       # Enable HA for core components
       controller = {
-        replicas = 2
+        replicas = 5
         resources = {
           requests = {
             cpu    = "200m"
@@ -47,7 +47,7 @@ resource "helm_release" "argocd" {
         }
       }
       server = {
-        replicas = 2
+        replicas  = 5
         extraArgs = ["--insecure"]
         resources = {
           requests = {
@@ -61,7 +61,7 @@ resource "helm_release" "argocd" {
         }
       }
       repoServer = {
-        replicas = 2
+        replicas = 5
         resources = {
           requests = {
             cpu    = "100m"
