@@ -273,6 +273,19 @@ resource "helm_release" "envoy_gateway" {
     value = "true"
   }
 
+  values = [
+    yamlencode({
+      # This configuration ensures that Envoy Gateway stays stable after reboots
+      # by having multiple replicas and allowing cross-node traffic.
+      config = {
+        gateway = {
+          # Setting replicas to 3 ensures at least 3 nodes have a local pod
+          replicas = 3
+        }
+      }
+    })
+  ]
+
   depends_on = [
     helm_release.cilium,
     null_resource.gateway_api_crds

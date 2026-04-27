@@ -52,5 +52,5 @@ variable "cloudflare_tunnel_token" {
 variable "env_prefix" {
   type        = string
   description = "Environment prefix for hostnames"
-  default     = "test"
+  default     = "dev"
 }

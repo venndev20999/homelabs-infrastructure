@@ -15,3 +15,9 @@ variable "target_revision" {
   description = "Git branch or tag to track"
   default     = "ft/dev"
 }
+
+variable "github_token" {
+  type        = string
+  description = "GitHub Personal Access Token for private repositories"
+  sensitive   = true
+}

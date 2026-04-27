@@ -15,7 +15,6 @@
 #   - terraform init (downloads siderolabs/talos provider)
 
 
-
 module "talos_cluster" {
   source = "../../modules/talos-cluster"
 
@@ -30,7 +29,7 @@ module "talos_cluster" {
 #   source          = "../../modules/argocd"
 #   depends_on      = [module.talos_cluster]
 #   ingress_enabled = true
-#   redis_db        = 1
+#   redis_db        = 0
 #   hostnames = [
 #     "argocd-${var.env_prefix}.vennpham.work",
 #     "argocd-${var.env_prefix}.vennpham.local"
@@ -42,10 +41,10 @@ module "talos_cluster" {
 #   cloudflare_token      = var.cloudflare_token
 #   cloudflare_zone_id    = var.cloudflare_zone_id
 #   cloudflare_account_id = var.cloudflare_account_id
-#   tunnel_id             = "aa3d250f-e275-4674-a1a3-9bcfe666286a" # Should be in vars
+#   tunnel_id             = "aa3d250f-e275-4674-a1a3-9bcfe666286a"
 #   tunnel_secret         = var.cloudflare_tunnel_token
 #   domain                = "vennpham.work"
-#   gateway_ip            = "192.168.122.120" # Test Control Plane IP
+#   gateway_ip            = "192.168.122.201" # Dev Control Plane IP
 #   enable_k8s_agent      = true
 
 #   dns_records = {

@@ -1,3 +1,4 @@
+# infrastructure/k8s/argocd/fleet-appset.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -10,13 +11,15 @@ spec:
           - list:
               elements:
                 - name: test-python-app
-                  repo: https://github.com/your-org/test-python-app.git
+                  repo: https://github.com/venndev20999/test-python-app.git
           - list:
               elements:
                 - env: dev
-                  cluster: https://kubernetes.default.svc
+                  cluster_name: in-cluster    # Deploys to the cluster ArgoCD is running on
+                - env: test
+                  cluster_name: test-cluster  # Matches the 'name' in your Terraform secret
                 - env: prod
-                  cluster: https://kubernetes.default.svc
+                  cluster_name: prod-cluster  # Placeholder for your future prod cluster
   template:
     metadata:
       name: '{{name}}-{{env}}'
@@ -27,7 +30,8 @@ spec:
         targetRevision: HEAD
         path: 'k8s/overlays/{{env}}'
       destination:
-        server: '{{cluster}}'
+        # 🚀 Using 'name' instead of 'server' is best practice for multi-cluster
+        name: '{{cluster_name}}'
         namespace: '{{name}}-{{env}}'
       syncPolicy:
         automated:

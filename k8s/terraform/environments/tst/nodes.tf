@@ -6,7 +6,7 @@
 # Let's define the nodes data as a local variable for clarity.
 locals {
   # Prefix to be used for node names, similar to Ansible's talos_prefix
-  node_prefix = "test"
+  node_prefix = "tst"
 
   talos_masters = [
     {
