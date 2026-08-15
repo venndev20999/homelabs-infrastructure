@@ -159,6 +159,22 @@ resource "helm_release" "cilium" {
   ]
 }
 
+# ── Create Namespace for Calico Operator ──────────────────────────────────────
+# The namespace must be explicitly created and labeled as "privileged" to satisfy PodSecurity standards,
+# as the Tigera Operator runs hostNetwork pods and uses hostPath volumes.
+resource "kubernetes_namespace" "tigera_operator" {
+  count = var.cni == "calico" ? 1 : 0
+
+  metadata {
+    name = "tigera-operator"
+    labels = {
+      "pod-security.kubernetes.io/enforce" = "privileged"
+      "pod-security.kubernetes.io/audit"   = "privileged"
+      "pod-security.kubernetes.io/warn"    = "privileged"
+    }
+  }
+}
+
 # ── Deploy Calico CRDs ──────────────────────────────────────────────────────────
 # In Calico v3.32+, CRDs are no longer bundled in the operator chart and must be installed first.
 resource "helm_release" "calico_crds" {
@@ -166,7 +182,8 @@ resource "helm_release" "calico_crds" {
 
   depends_on = [
     talos_machine_bootstrap.this,
-    talos_cluster_kubeconfig.this
+    talos_cluster_kubeconfig.this,
+    kubernetes_namespace.tigera_operator[0]
   ]
 
   name             = "calico-crds"
@@ -174,7 +191,6 @@ resource "helm_release" "calico_crds" {
   chart            = "crd.projectcalico.org.v1"
   version          = "v3.32.1"
   namespace        = "tigera-operator"
-  create_namespace = true
 }
 
 # ── Deploy Calico CNI ──────────────────────────────────────────────────────────
@@ -186,6 +202,7 @@ resource "helm_release" "calico" {
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
+    kubernetes_namespace.tigera_operator[0],
     helm_release.calico_crds[0]
   ]
 
@@ -194,7 +211,6 @@ resource "helm_release" "calico" {
   chart            = "tigera-operator"
   version          = "v3.32.1"
   namespace        = "tigera-operator"
-  create_namespace = true
 
   values = [
     yamlencode({
