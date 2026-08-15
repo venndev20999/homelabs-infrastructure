@@ -7,6 +7,10 @@ resource "kubernetes_namespace_v1" "argocd" {
 
 # Deploy ArgoCD via Helm
 resource "helm_release" "argocd" {
+  depends_on = [
+    kubernetes_namespace_v1.argocd
+  ]
+
   name             = "argocd"
   repository       = "https://argoproj.github.io/argo-helm"
   chart            = "argo-cd"
@@ -33,14 +37,24 @@ resource "helm_release" "argocd" {
   ]
 }
 
+# ── Create Namespace for Envoy Gateway ──────────────────────────────────────────
+resource "kubernetes_namespace_v1" "envoy_gateway_system" {
+  metadata {
+    name = "envoy-gateway-system"
+  }
+}
+
 # Deploy Envoy Gateway (Gateway API controller) via OCI Helm chart
 resource "helm_release" "envoy_gateway" {
-  name             = "envoy-gateway"
-  repository       = "oci://docker.io/envoyproxy"
-  chart            = "gateway-helm"
-  version          = "v1.1.0"
-  namespace        = "envoy-gateway-system"
-  create_namespace = true
+  depends_on = [
+    kubernetes_namespace_v1.envoy_gateway_system
+  ]
+
+  name       = "envoy-gateway"
+  repository = "oci://docker.io/envoyproxy"
+  chart      = "gateway-helm"
+  version    = "v1.1.0"
+  namespace  = "envoy-gateway-system"
 }
 
 # ── Create Namespace for MetalLB ──────────────────────────────────────────────
