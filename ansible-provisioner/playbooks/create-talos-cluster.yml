@@ -10,7 +10,6 @@
 
   vars_files:
     - ["../vars/talos-{{ talos_prefix | default('dev') }}.yml", "/dev/null"]
-    - ["../vars/talos-dev.yml", "/dev/null"]
 
   vars:
     # Strip all non-IP characters from the passed strings then split on comma.

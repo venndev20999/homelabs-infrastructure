@@ -114,6 +114,7 @@ data "talos_cluster_health" "this" {
   client_configuration = talos_machine_secrets.this.client_configuration
   control_plane_nodes  = var.controlplane_ips
   endpoints            = var.controlplane_ips
+  skip_kubernetes_checks = true
 }
 
 # ── Deploy Cilium CNI ──────────────────────────────────────────────────────────
