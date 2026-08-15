@@ -35,3 +35,13 @@ resource "helm_release" "envoy_gateway" {
   namespace        = "envoy-gateway-system"
   create_namespace = true
 }
+
+# Deploy MetalLB via Helm
+resource "helm_release" "metallb" {
+  name             = "metallb"
+  repository       = "https://metallb.github.io/metallb"
+  chart            = "metallb"
+  version          = "0.14.8"
+  namespace        = "metallb-system"
+  create_namespace = true
+}
