@@ -159,6 +159,24 @@ resource "helm_release" "cilium" {
   ]
 }
 
+# ── Deploy Calico CRDs ──────────────────────────────────────────────────────────
+# In Calico v3.32+, CRDs are no longer bundled in the operator chart and must be installed first.
+resource "helm_release" "calico_crds" {
+  count = var.cni == "calico" ? 1 : 0
+
+  depends_on = [
+    talos_machine_bootstrap.this,
+    talos_cluster_kubeconfig.this
+  ]
+
+  name             = "calico-crds"
+  repository       = "https://docs.tigera.io/calico/charts"
+  chart            = "crd.projectcalico.org.v1"
+  version          = "v3.32.1"
+  namespace        = "tigera-operator"
+  create_namespace = true
+}
+
 # ── Deploy Calico CNI ──────────────────────────────────────────────────────────
 # Deploys Calico automatically into the cluster after it is bootstrapped.
 # Based on: https://docs.tigera.io/calico/latest/getting-started/kubernetes/helm
@@ -168,7 +186,7 @@ resource "helm_release" "calico" {
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
-    # data.talos_cluster_health.this
+    helm_release.calico_crds[0]
   ]
 
   name             = "calico"
