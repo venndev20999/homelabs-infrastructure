@@ -162,7 +162,7 @@ resource "helm_release" "cilium" {
 # ── Create Namespace for Calico Operator ──────────────────────────────────────
 # The namespace must be explicitly created and labeled as "privileged" to satisfy PodSecurity standards,
 # as the Tigera Operator runs hostNetwork pods and uses hostPath volumes.
-resource "kubernetes_namespace" "tigera_operator" {
+resource "kubernetes_namespace_v1" "tigera_operator" {
   count = var.cni == "calico" ? 1 : 0
 
   metadata {
@@ -183,7 +183,7 @@ resource "helm_release" "calico_crds" {
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
-    kubernetes_namespace.tigera_operator[0]
+    kubernetes_namespace_v1.tigera_operator[0]
   ]
 
   name             = "calico-crds"
@@ -202,7 +202,7 @@ resource "helm_release" "calico" {
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
-    kubernetes_namespace.tigera_operator[0],
+    kubernetes_namespace_v1.tigera_operator[0],
     helm_release.calico_crds[0]
   ]
 
