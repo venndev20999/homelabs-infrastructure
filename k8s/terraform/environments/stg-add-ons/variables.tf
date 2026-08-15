@@ -10,3 +10,22 @@ variable "argocd_admin_password" {
   default     = ""
   sensitive   = true
 }
+
+variable "minio_endpoint" {
+  type        = string
+  description = "MinIO server endpoint"
+  default     = "192.168.1.223:9000"
+}
+
+variable "minio_user" {
+  type        = string
+  description = "MinIO username"
+  default     = "vennpham"
+}
+
+variable "minio_password" {
+  type        = string
+  description = "MinIO password"
+  default     = "dnquynh#123"
+  sensitive   = true
+}
