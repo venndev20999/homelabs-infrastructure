@@ -24,6 +24,7 @@ module "talos_cluster" {
   controlplane_ips = var.controlplane_ips
   worker_ips       = var.worker_ips
   talos_version    = var.talos_version
+  cni              = var.cni
 }
 
 # # ── Outputs ────────────────────────────────────────────────────────────────────

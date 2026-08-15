@@ -25,3 +25,9 @@ variable "talos_version" {
   description = "Talos OS version"
   default     = "v1.7.0"
 }
+
+variable "cni" {
+  type        = string
+  description = "The CNI plugin to deploy (cilium or calico)"
+  default     = "calico"
+}

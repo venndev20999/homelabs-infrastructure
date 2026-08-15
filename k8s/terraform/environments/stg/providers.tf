@@ -34,3 +34,10 @@ provider "helm" {
     cluster_ca_certificate = base64decode(module.talos_cluster.kubeconfig_ca_cert)
   }
 }
+
+provider "kubernetes" {
+  host                   = module.talos_cluster.kubeconfig_host
+  client_certificate     = base64decode(module.talos_cluster.kubeconfig_client_cert)
+  client_key             = base64decode(module.talos_cluster.kubeconfig_client_key)
+  cluster_ca_certificate = base64decode(module.talos_cluster.kubeconfig_ca_cert)
+}

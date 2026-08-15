@@ -9,7 +9,7 @@ This directory contains infrastructure-as-code for deploying and managing the Ta
 | OS | [Talos Linux](https://www.talos.dev/) | Immutable, API-driven OS purpose-built for k8s |
 | Provisioning | [Terraform](https://www.terraform.io/) | Configures cluster via Talos provider (mTLS, no SSH) |
 | VM Host | Cockpit / KVM (localserver) | VMs run on `192.168.122.x` libvirt default network |
-| CNI | [Cilium](https://cilium.io/) | Default CNI and kube-proxy disabled in Talos config |
+| CNI | [Calico](https://docs.tigera.io/) | Default CNI disabled in Talos config (Calico is deployed automatically via Helm) |
 
 ## Directory Structure
 
@@ -160,10 +160,10 @@ worker_ips       = [
 # Check nodes
 kubectl get nodes -o wide
 
-# Install Cilium CNI (required — default CNI is disabled)
-helm repo add cilium https://helm.cilium.io/
-helm install cilium cilium/cilium --namespace kube-system \
-  --set kubeProxyReplacement=true
+# Calico CNI is installed automatically by the Terraform module via the Tigera Operator.
+# If you need to verify or manage it manually:
+helm repo add projectcalico https://docs.tigera.io/calico/charts
+helm install calico projectcalico/tigera-operator --namespace tigera-operator --create-namespace
 
 # Check Talos node health
 talosctl --nodes 192.168.122.110 health

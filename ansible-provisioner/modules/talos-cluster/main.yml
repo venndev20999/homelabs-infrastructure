@@ -13,6 +13,42 @@
   ignore_errors: yes
   changed_when: false
 
+- name: "[dhcp] Remove existing DHCP entries for Name, IP, or MAC (catch conflicts)"
+  shell: |
+    NET="{{ talos_network }}"
+    NAME="{{ item.name }}"
+    IP="{{ item.ip }}"
+    MAC="52:54:00:12:34:{{ '%02x' | format(item.ip.split('.')[-1] | int) }}"
+    while true; do
+      ENTRY=$(virsh net-dumpxml "$NET" | grep -E "name='$NAME'|ip='$IP'|mac='$MAC'" | sed "s/^\s*//" | head -1)
+      if [ -n "$ENTRY" ]; then
+        if ! virsh net-update "$NET" delete ip-dhcp-host --xml "$ENTRY" --live --config; then
+          virsh net-update "$NET" delete ip-dhcp-host --xml "$ENTRY" --live || true
+          virsh net-update "$NET" delete ip-dhcp-host --xml "$ENTRY" --config || true
+        fi
+      else
+        break
+      fi
+    done
+  loop: "{{ all_nodes }}"
+  loop_control:
+    index_var: node_idx
+    label: "{{ item.name }}"
+  ignore_errors: yes
+  changed_when: false
+  when: vm_exists.results[node_idx].rc != 0  # only clean up if VM does not exist (being newly created)
+
+- name: "[dhcp] Register static IP → MAC reservation"
+  command: >
+    virsh net-update {{ talos_network }} add ip-dhcp-host
+    --xml "<host mac='52:54:00:12:34:{{ '%02x' | format(item.ip.split('.')[-1] | int) }}' name='{{ item.name }}' ip='{{ item.ip }}'/>"
+    --live --config
+  loop: "{{ all_nodes }}"
+  loop_control:
+    index_var: node_idx
+    label: "{{ item.name }} → {{ item.ip }}"
+  when: vm_exists.results[node_idx].rc != 0  # only add if VM does not exist (being newly created)
+
 - name: "[vm] Create VM with virt-install"
   shell: |
     virt-install \
@@ -22,11 +58,12 @@
       --disk path="{{ talos_disk_dir }}/{{ item.item.name }}.qcow2",size={{ item.item.disk_size }},format=qcow2 \
       --cdrom "{{ talos_iso_path }}" \
       --os-variant unknown \
-      --network network="{{ talos_network }}",model=virtio \
+      --network network="{{ talos_network }}",model=virtio,mac="52:54:00:12:34:{{ '%02x' | format(item.item.ip.split('.')[-1] | int) }}" \
       --graphics vnc,listen=0.0.0.0,port=-1 \
       --graphics spice \
       --video qxl \
       --console pty,target_type=serial \
+      --boot hd,cdrom \
       --noautoconsole
   loop: "{{ vm_exists.results }}"
   loop_control:
@@ -43,66 +80,6 @@
   loop_control:
     label: "{{ item.name }}"
 
-# ── Wait for network interface + get MAC ───────────────────────────────
-- name: "[net] Retrieve MAC address for DHCP explicitly from XML"
-  shell: |
-    MAC=$(virsh dumpxml "{{ item.name }}" | grep "mac address=" | cut -d\' -f2 | head -1)
-    if [ -n "$MAC" ]; then
-      echo "$MAC"
-    else
-      exit 1
-    fi
-  loop: "{{ all_nodes }}"
-  loop_control:
-    label: "{{ item.name }}"
-  register: mac_results
-  changed_when: false
-
-- name: "[net] Fail if MAC not found for any node"
-  fail:
-    msg: "Could not get MAC address for {{ item.item.name }} — VM may not have started properly"
-  loop: "{{ mac_results.results }}"
-  loop_control:
-    label: "{{ item.item.name }}"
-  when: item.stdout == "TIMEOUT" or item.rc != 0
-
-# ── Register static DHCP reservations ─────────────────────────────────
-- name: "[dhcp] Wait 30s for VMs to settle before DHCP registration"
-  pause:
-    seconds: 30
-
-- name: "[dhcp] Remove existing DHCP entries for Name, IP, or MAC (catch conflicts)"
-  shell: |
-    NET="{{ talos_network }}"
-    NAME="{{ item.item.name }}"
-    IP="{{ item.item.ip }}"
-    MAC="{{ item.stdout }}"
-    # Loop to ensure all conflicting entries (by Name, IP, or MAC) are removed
-    while true; do
-      ENTRY=$(virsh net-dumpxml "$NET" | grep -E "name='$NAME'|ip='$IP'|mac='$MAC'" | sed "s/^\s*//" | head -1)
-      if [ -n "$ENTRY" ]; then
-        virsh net-update "$NET" delete ip-dhcp-host --xml "$ENTRY" --live --config || break
-      else
-        break
-      fi
-    done
-  loop: "{{ mac_results.results }}"
-  loop_control:
-    label: "{{ item.item.name }} (MAC: {{ item.stdout }})"
-  ignore_errors: yes
-  changed_when: false
-
-- name: "[dhcp] Register static IP → MAC reservation"
-  command: >
-    virsh net-update {{ talos_network }} add ip-dhcp-host
-    --xml "<host mac='{{ item.0.stdout }}' name='{{ item.1.name }}' ip='{{ item.1.ip }}'/>"
-    --live --config
-  with_together:
-    - "{{ mac_results.results }}"
-    - "{{ all_nodes }}"
-  loop_control:
-    label: "{{ item.1.name }} → {{ item.1.ip }}"
-
 # ── Summary ────────────────────────────────────────────────────────────
 - name: "[summary] Cluster node allocation"
   debug:
@@ -111,9 +88,9 @@
       - "Talos cluster: {{ talos_cluster_name }} [{{ talos_prefix }}]"
       - "============================================="
       - "MASTER (1):"
-      - "  {{ mac_results.results[0].item.name }}: IP={{ mac_results.results[0].item.ip }}  MAC={{ mac_results.results[0].stdout }}"
+      - "  {{ talos_masters[0].name }}: IP={{ talos_masters[0].ip }}  MAC=52:54:00:12:34:{{ '%02x' | format(talos_masters[0].ip.split('.')[-1] | int) }}"
       - "WORKERS:"
-      - "{% for r in mac_results.results[1:] %}  {{ r.item.name }}: IP={{ r.item.ip }}  MAC={{ r.stdout }}{% endfor %}"
+      - "{% for w in talos_workers %}  {{ w.name }}: IP={{ w.ip }}  MAC=52:54:00:12:34:{{ '%02x' | format(w.ip.split('.')[-1] | int) }}{% endfor %}"
       - "============================================="
       - "Next step:"
       - "  talosctl apply-config --insecure --nodes {{ talos_masters[0].ip }} --file controlplane.yaml"

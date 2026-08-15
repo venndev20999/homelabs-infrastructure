@@ -24,3 +24,13 @@ variable "talos_version" {
   type        = string
   default     = "v1.7.0"
 }
+
+variable "cni" {
+  description = "The CNI plugin to deploy (cilium or calico)"
+  type        = string
+  default     = "cilium"
+  validation {
+    condition     = contains(["cilium", "calico"], var.cni)
+    error_message = "CNI must be one of: cilium, calico."
+  }
+}

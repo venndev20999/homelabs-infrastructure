@@ -18,21 +18,29 @@ data "talos_machine_configuration" "controlplane" {
   docs     = false
   examples = false
 
-  # Patch: Disable Default CNI and Kube-Proxy for Cilium CNI installation
-  config_patches = [
-    yamlencode({
-      cluster = {
-        network = {
-          cni = {
-            name = "none"
+  # Patch: Disable Default CNI (and optionally Kube-Proxy if using Cilium)
+  config_patches = concat(
+    [
+      yamlencode({
+        cluster = {
+          network = {
+            cni = {
+              name = "none"
+            }
           }
         }
-        proxy = {
-          disabled = true
+      })
+    ],
+    var.cni == "cilium" ? [
+      yamlencode({
+        cluster = {
+          proxy = {
+            disabled = true
+          }
         }
-      }
-    })
-  ]
+      })
+    ] : []
+  )
 }
 
 # Generate Worker Config
@@ -73,10 +81,27 @@ resource "talos_machine_bootstrap" "this" {
   node                 = var.controlplane_ips[0]
 }
 
+# Wait for Kubernetes API Server to be reachable before extracting kubeconfig or running Helm charts
+resource "terraform_data" "wait_api" {
+  depends_on = [
+    talos_machine_bootstrap.this
+  ]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "Waiting for Kubernetes API Server (https://${var.controlplane_ips[0]}:6443) to become reachable..."
+      until curl -k -s --connect-timeout 2 https://${var.controlplane_ips[0]}:6443/healthz >/dev/null; do
+        sleep 2
+      done
+      echo "Kubernetes API Server is reachable!"
+    EOT
+  }
+}
+
 # Extract the cluster Kubeconfig
 resource "talos_cluster_kubeconfig" "this" {
   depends_on = [
-    talos_machine_bootstrap.this
+    terraform_data.wait_api
   ]
 
   client_configuration = talos_machine_secrets.this.client_configuration
@@ -97,25 +122,28 @@ resource "local_file" "kubeconfig" {
 }
 
 # ── Wait for cluster to be healthy before helm ───────────────────────────────────
-data "talos_cluster_health" "this" {
-  depends_on = [
-    talos_machine_configuration_apply.controlplane,
-    talos_machine_bootstrap.this
-  ]
+# data "talos_cluster_health" "this" {
+#   depends_on = [
+#     talos_machine_configuration_apply.controlplane,
+#     talos_machine_bootstrap.this
+#   ]
 
-  client_configuration = talos_machine_secrets.this.client_configuration
-  control_plane_nodes  = var.controlplane_ips
-  endpoints            = var.controlplane_ips
-}
+#   client_configuration = talos_machine_secrets.this.client_configuration
+#   control_plane_nodes  = var.controlplane_ips
+#   endpoints            = var.controlplane_ips
+#   skip_kubernetes_checks = true
+# }
 
 # ── Deploy Cilium CNI ──────────────────────────────────────────────────────────
 # Deploys Cilium automatically into the cluster after it is bootstrapped.
 # Based on: https://docs.siderolabs.com/kubernetes-guides/cni/deploying-cilium
 resource "helm_release" "cilium" {
+  count = var.cni == "cilium" ? 1 : 0
+
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
-    data.talos_cluster_health.this
+    # data.talos_cluster_health.this
   ]
 
   name       = "cilium"
@@ -144,6 +172,91 @@ resource "helm_release" "cilium" {
       }
       k8sServiceHost = "localhost"
       k8sServicePort = 7445
+    })
+  ]
+}
+
+# ── Create Namespace for Calico Operator ──────────────────────────────────────
+# The namespace must be explicitly created and labeled as "privileged" to satisfy PodSecurity standards,
+# as the Tigera Operator runs hostNetwork pods and uses hostPath volumes.
+resource "kubernetes_namespace_v1" "tigera_operator" {
+  count = var.cni == "calico" ? 1 : 0
+
+  metadata {
+    name = "tigera-operator"
+    labels = {
+      "pod-security.kubernetes.io/enforce" = "privileged"
+      "pod-security.kubernetes.io/audit"   = "privileged"
+      "pod-security.kubernetes.io/warn"    = "privileged"
+    }
+  }
+}
+
+# ── Deploy Calico CRDs ──────────────────────────────────────────────────────────
+# In Calico v3.32+, CRDs are no longer bundled in the operator chart and must be installed first.
+resource "helm_release" "calico_crds" {
+  count = var.cni == "calico" ? 1 : 0
+
+  depends_on = [
+    talos_machine_bootstrap.this,
+    talos_cluster_kubeconfig.this,
+    kubernetes_namespace_v1.tigera_operator[0]
+  ]
+
+  name       = "calico-crds"
+  repository = "https://docs.tigera.io/calico/charts"
+  chart      = "crd.projectcalico.org.v1"
+  version    = "v3.32.1"
+  namespace  = "tigera-operator"
+}
+
+# ── Deploy Calico CNI ──────────────────────────────────────────────────────────
+# Deploys Calico automatically into the cluster after it is bootstrapped.
+# Based on: https://docs.tigera.io/calico/latest/getting-started/kubernetes/helm
+resource "helm_release" "calico" {
+  count = var.cni == "calico" ? 1 : 0
+
+  depends_on = [
+    talos_machine_bootstrap.this,
+    talos_cluster_kubeconfig.this,
+    kubernetes_namespace_v1.tigera_operator[0],
+    helm_release.calico_crds[0]
+  ]
+
+  name       = "calico"
+  repository = "https://docs.tigera.io/calico/charts"
+  chart      = "tigera-operator"
+  version    = "v3.32.1"
+  namespace  = "tigera-operator"
+
+  values = [
+    yamlencode({
+      installation = {
+        enabled            = true
+        kubernetesProvider = ""
+        cni = {
+          type = "Calico"
+          ipam = {
+            type = "Calico"
+          }
+        }
+        calicoNetwork = {
+          bgp = "Disabled"
+          ipPools = [
+            {
+              cidr          = "10.244.0.0/16"
+              encapsulation = "VXLAN"
+              natOutgoing   = "Enabled"
+              nodeSelector  = "all()"
+              blockSize     = 26
+            }
+          ]
+        }
+      }
+      defaultFelixConfiguration = {
+        enabled      = true
+        cgroupV2Path = "/sys/fs/cgroup"
+      }
     })
   ]
 }
