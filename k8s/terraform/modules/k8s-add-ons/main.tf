@@ -16,15 +16,19 @@ resource "helm_release" "argocd" {
 
   values = [
     yamlencode({
-      configs = {
-        params = {
-          "server.insecure" = true
-        }
-        secret = var.argocd_admin_password != "" ? {
-          # Hashed password for admin user
-          argocdAdminPassword = var.argocd_admin_password
-        } : null
-      }
+      configs = merge(
+        {
+          params = {
+            "server.insecure" = true
+          }
+        },
+        var.argocd_admin_password != "" ? {
+          secret = {
+            # Hashed password for admin user
+            argocdAdminPassword = var.argocd_admin_password
+          }
+        } : {}
+      )
     })
   ]
 }

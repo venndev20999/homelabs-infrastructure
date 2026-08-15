@@ -36,6 +36,8 @@ spec:
     namespace: envoy-gateway-system
   hostnames:
   - "argocd.vennpham.dev"
+  - "argocd.vennpham.local"
+
   rules:
   - matches:
     - path:
