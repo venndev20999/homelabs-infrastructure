@@ -18,21 +18,29 @@ data "talos_machine_configuration" "controlplane" {
   docs     = false
   examples = false
 
-  # Patch: Disable Default CNI and Kube-Proxy for Cilium CNI installation
-  config_patches = [
-    yamlencode({
-      cluster = {
-        network = {
-          cni = {
-            name = "none"
+  # Patch: Disable Default CNI (and optionally Kube-Proxy if using Cilium)
+  config_patches = concat(
+    [
+      yamlencode({
+        cluster = {
+          network = {
+            cni = {
+              name = "none"
+            }
           }
         }
-        proxy = {
-          disabled = true
+      })
+    ],
+    var.cni == "cilium" ? [
+      yamlencode({
+        cluster = {
+          proxy = {
+            disabled = true
+          }
         }
-      }
-    })
-  ]
+      })
+    ] : []
+  )
 }
 
 # Generate Worker Config
@@ -112,6 +120,8 @@ data "talos_cluster_health" "this" {
 # Deploys Cilium automatically into the cluster after it is bootstrapped.
 # Based on: https://docs.siderolabs.com/kubernetes-guides/cni/deploying-cilium
 resource "helm_release" "cilium" {
+  count = var.cni == "cilium" ? 1 : 0
+
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
@@ -144,6 +154,57 @@ resource "helm_release" "cilium" {
       }
       k8sServiceHost = "localhost"
       k8sServicePort = 7445
+    })
+  ]
+}
+
+# ── Deploy Calico CNI ──────────────────────────────────────────────────────────
+# Deploys Calico automatically into the cluster after it is bootstrapped.
+# Based on: https://docs.tigera.io/calico/latest/getting-started/kubernetes/helm
+resource "helm_release" "calico" {
+  count = var.cni == "calico" ? 1 : 0
+
+  depends_on = [
+    talos_machine_bootstrap.this,
+    talos_cluster_kubeconfig.this,
+    data.talos_cluster_health.this
+  ]
+
+  name             = "calico"
+  repository       = "https://docs.tigera.io/calico/charts"
+  chart            = "tigera-operator"
+  version          = "v3.32.1"
+  namespace        = "tigera-operator"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      installation = {
+        enabled            = true
+        kubernetesProvider = ""
+        cni = {
+          type = "Calico"
+          ipam = {
+            type = "Calico"
+          }
+        }
+        calicoNetwork = {
+          bgp = "Disabled"
+          ipPools = [
+            {
+              cidr          = "10.244.0.0/16"
+              encapsulation = "VXLAN"
+              natOutgoing   = "Enabled"
+              nodeSelector  = "all()"
+              blockSize     = 26
+            }
+          ]
+        }
+      }
+      defaultFelixConfiguration = {
+        enabled      = true
+        cgroupV2Path = "/sys/fs/cgroup"
+      }
     })
   ]
 }
