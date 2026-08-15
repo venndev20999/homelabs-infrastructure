@@ -81,10 +81,27 @@ resource "talos_machine_bootstrap" "this" {
   node                 = var.controlplane_ips[0]
 }
 
+# Wait for Kubernetes API Server to be reachable before extracting kubeconfig or running Helm charts
+resource "terraform_data" "wait_api" {
+  depends_on = [
+    talos_machine_bootstrap.this
+  ]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "Waiting for Kubernetes API Server (https://${var.controlplane_ips[0]}:6443) to become reachable..."
+      until curl -k -s --connect-timeout 2 https://${var.controlplane_ips[0]}:6443/healthz >/dev/null; do
+        sleep 2
+      done
+      echo "Kubernetes API Server is reachable!"
+    EOT
+  }
+}
+
 # Extract the cluster Kubeconfig
 resource "talos_cluster_kubeconfig" "this" {
   depends_on = [
-    talos_machine_bootstrap.this
+    terraform_data.wait_api
   ]
 
   client_configuration = talos_machine_secrets.this.client_configuration
