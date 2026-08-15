@@ -36,12 +36,29 @@ resource "helm_release" "envoy_gateway" {
   create_namespace = true
 }
 
+# ── Create Namespace for MetalLB ──────────────────────────────────────────────
+# The namespace must be explicitly created and labeled as "privileged" to satisfy PodSecurity standards,
+# as MetalLB speaker pods run hostNetwork, hostPorts, and require capabilities like NET_ADMIN.
+resource "kubernetes_namespace_v1" "metallb_system" {
+  metadata {
+    name = "metallb-system"
+    labels = {
+      "pod-security.kubernetes.io/enforce" = "privileged"
+      "pod-security.kubernetes.io/audit"   = "privileged"
+      "pod-security.kubernetes.io/warn"    = "privileged"
+    }
+  }
+}
+
 # Deploy MetalLB via Helm
 resource "helm_release" "metallb" {
-  name             = "metallb"
-  repository       = "https://metallb.github.io/metallb"
-  chart            = "metallb"
-  version          = "0.14.8"
-  namespace        = "metallb-system"
-  create_namespace = true
+  depends_on = [
+    kubernetes_namespace_v1.metallb_system
+  ]
+
+  name       = "metallb"
+  repository = "https://metallb.github.io/metallb"
+  chart      = "metallb"
+  version    = "0.14.8"
+  namespace  = "metallb-system"
 }
