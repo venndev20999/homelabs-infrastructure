@@ -35,3 +35,36 @@ import {
   to = module.k8s_monitoring.kubernetes_namespace_v1.monitoring
   id = "monitoring"
 }
+
+# ── Import Blocks for Pre-existing Helm Releases ───────────────────────────────
+# This instructs Terraform to adopt the existing Helm releases inside the cluster
+# rather than throwing "cannot re-use a name that is still in use" errors.
+import {
+  to = module.k8s_add_ons.helm_release.argocd
+  id = "argocd/argocd"
+}
+
+import {
+  to = module.k8s_add_ons.helm_release.envoy_gateway
+  id = "envoy-gateway-system/envoy-gateway"
+}
+
+import {
+  to = module.k8s_add_ons.helm_release.metallb
+  id = "metallb-system/metallb"
+}
+
+import {
+  to = module.k8s_monitoring.helm_release.loki
+  id = "monitoring/loki"
+}
+
+import {
+  to = module.k8s_monitoring.helm_release.tempo
+  id = "monitoring/tempo"
+}
+
+import {
+  to = module.k8s_monitoring.helm_release.prometheus
+  id = "monitoring/prometheus"
+}
