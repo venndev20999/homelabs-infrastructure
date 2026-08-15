@@ -127,10 +127,41 @@ resource "helm_release" "tempo" {
   ]
 }
 
+# Deploy Prometheus (Metrics Collection) via Helm
+resource "helm_release" "prometheus" {
+  depends_on = [
+    kubernetes_namespace_v1.monitoring
+  ]
+
+  name       = "prometheus"
+  repository = "https://prometheus-community.github.io/helm-charts"
+  chart      = "prometheus"
+  version    = "25.21.0"
+  namespace  = "monitoring"
+
+  values = [
+    yamlencode({
+      alertmanager = {
+        enabled = false # Disable alertmanager to save resources
+      }
+      pushgateway = {
+        enabled = false
+      }
+      server = {
+        persistentVolume = {
+          size = "10Gi"
+        }
+        retention = "15d"
+      }
+    })
+  ]
+}
+
 # Deploy Grafana (Observability Dashboard) via Helm
 resource "helm_release" "grafana" {
   depends_on = [
-    kubernetes_namespace_v1.monitoring
+    kubernetes_namespace_v1.monitoring,
+    helm_release.prometheus
   ]
 
   name       = "grafana"
@@ -173,6 +204,13 @@ resource "helm_release" "grafana" {
               access = "proxy"
               url    = "http://tempo.monitoring.svc.cluster.local:3100"
               uid    = "tempo"
+            },
+            {
+              name   = "Prometheus"
+              type   = "prometheus"
+              access = "proxy"
+              url    = "http://prometheus-server.monitoring.svc.cluster.local:80"
+              uid    = "prometheus"
             }
           ]
         }
