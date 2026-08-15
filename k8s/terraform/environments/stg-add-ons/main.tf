@@ -12,3 +12,26 @@ module "k8s_monitoring" {
   minio_user     = var.minio_user
   minio_password = var.minio_password
 }
+
+# ── Import Blocks for Pre-existing Namespaces ──────────────────────────────────
+# This allows Terraform to safely import and manage the lifecycle of these namespaces
+# rather than returning "already exists" errors when trying to create them.
+import {
+  to = module.k8s_add_ons.kubernetes_namespace_v1.argocd
+  id = "argocd"
+}
+
+import {
+  to = module.k8s_add_ons.kubernetes_namespace_v1.envoy_gateway_system
+  id = "envoy-gateway-system"
+}
+
+import {
+  to = module.k8s_add_ons.kubernetes_namespace_v1.metallb_system
+  id = "metallb-system"
+}
+
+import {
+  to = module.k8s_monitoring.kubernetes_namespace_v1.monitoring
+  id = "monitoring"
+}

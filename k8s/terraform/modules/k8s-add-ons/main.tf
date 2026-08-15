@@ -142,24 +142,25 @@ resource "kubernetes_namespace_v1" "local_path_storage" {
   }
 }
 
-# Deploy Rancher Local Path Provisioner via Helm
-resource "helm_release" "local_path_provisioner" {
+# Deploy Rancher Local Path Provisioner via raw manifests (Official installation method)
+resource "terraform_data" "local_path_provisioner" {
   depends_on = [
     kubernetes_namespace_v1.local_path_storage
   ]
 
-  name       = "local-path-provisioner"
-  repository = "https://charts.rancher.io"
-  chart      = "local-path-provisioner"
-  version    = "0.0.28"
-  namespace  = "local-path-storage"
+  input = var.kubeconfig_path
 
-  values = [
-    yamlencode({
-      storageClass = {
-        create       = true
-        defaultClass = true
-      }
-    })
-  ]
+  provisioner "local-exec" {
+    command = "kubectl --kubeconfig ${var.kubeconfig_path} apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.28/deploy/local-path-storage.yaml"
+  }
+
+  # Set local-path StorageClass as default
+  provisioner "local-exec" {
+    command = "kubectl --kubeconfig ${var.kubeconfig_path} annotate storageclass local-path storageclass.kubernetes.io/is-default-class=true --overwrite"
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "kubectl --kubeconfig ${self.input} delete -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.28/deploy/local-path-storage.yaml --ignore-not-found"
+  }
 }
