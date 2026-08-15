@@ -126,7 +126,7 @@ resource "helm_release" "cilium" {
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
-    data.talos_cluster_health.this
+    # data.talos_cluster_health.this
   ]
 
   name       = "cilium"
@@ -168,7 +168,7 @@ resource "helm_release" "calico" {
   depends_on = [
     talos_machine_bootstrap.this,
     talos_cluster_kubeconfig.this,
-    data.talos_cluster_health.this
+    # data.talos_cluster_health.this
   ]
 
   name             = "calico"
