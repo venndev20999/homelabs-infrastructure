@@ -14,16 +14,19 @@ resource "helm_release" "argocd" {
   namespace        = kubernetes_namespace_v1.argocd.metadata[0].name
   create_namespace = false
 
-  values = var.argocd_admin_password != "" ? [
+  values = [
     yamlencode({
       configs = {
-        secret = {
+        params = {
+          "server.insecure" = true
+        }
+        secret = var.argocd_admin_password != "" ? {
           # Hashed password for admin user
           argocdAdminPassword = var.argocd_admin_password
-        }
+        } : null
       }
     })
-  ] : []
+  ]
 }
 
 # Deploy Envoy Gateway (Gateway API controller) via OCI Helm chart
