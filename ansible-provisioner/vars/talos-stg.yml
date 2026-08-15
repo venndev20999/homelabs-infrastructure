@@ -1,0 +1,41 @@
+---
+# vars/talos.yml
+# Define all Talos cluster nodes here.
+# IPs must be in the libvirt default network range (192.168.122.3)
+# and must not conflict with existing instances.
+
+talos_cluster_name: "finance-k8s"
+talos_prefix: "{{talos_prefix}}"
+
+talos_iso_path: "/var/iso/metal-amd64.iso"
+talos_disk_dir: "/var/lib/libvirt/images"
+talos_network:  "default"
+
+# ── Control plane nodes ───────────────────────────────────────────────────────
+# memory in MB, vcpus count
+talos_masters:
+  - name: "talos-vm-master-{{ talos_prefix }}"
+    ip:   "192.168.122.100"
+    memory: 4096
+    vcpus:  4
+    disk_size: 40   # GB
+
+# ── Worker nodes ──────────────────────────────────────────────────────────────
+talos_workers:
+  - name: "talos-vm-worker-1-{{ talos_prefix }}"
+    ip:   "192.168.122.111"
+    memory: 4096
+    vcpus:  2
+    disk_size: 50
+
+  - name: "talos-vm-worker-2-{{ talos_prefix }}"
+    ip:   "192.168.122.112"
+    memory: 4096
+    vcpus:  2
+    disk_size: 50
+
+  - name: "talos-vm-worker-3-{{ talos_prefix }}"
+    ip:   "192.168.122.113"
+    memory: 4096
+    vcpus:  2
+    disk_size: 50
