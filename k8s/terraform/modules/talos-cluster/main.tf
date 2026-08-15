@@ -203,11 +203,11 @@ resource "helm_release" "calico_crds" {
     kubernetes_namespace_v1.tigera_operator[0]
   ]
 
-  name             = "calico-crds"
-  repository       = "https://docs.tigera.io/calico/charts"
-  chart            = "crd.projectcalico.org.v1"
-  version          = "v3.32.1"
-  namespace        = "tigera-operator"
+  name       = "calico-crds"
+  repository = "https://docs.tigera.io/calico/charts"
+  chart      = "crd.projectcalico.org.v1"
+  version    = "v3.32.1"
+  namespace  = "tigera-operator"
 }
 
 # ── Deploy Calico CNI ──────────────────────────────────────────────────────────
@@ -223,11 +223,11 @@ resource "helm_release" "calico" {
     helm_release.calico_crds[0]
   ]
 
-  name             = "calico"
-  repository       = "https://docs.tigera.io/calico/charts"
-  chart            = "tigera-operator"
-  version          = "v3.32.1"
-  namespace        = "tigera-operator"
+  name       = "calico"
+  repository = "https://docs.tigera.io/calico/charts"
+  chart      = "tigera-operator"
+  version    = "v3.32.1"
+  namespace  = "tigera-operator"
 
   values = [
     yamlencode({

@@ -25,3 +25,13 @@ resource "helm_release" "argocd" {
     })
   ] : []
 }
+
+# Deploy Envoy Gateway (Gateway API controller) via OCI Helm chart
+resource "helm_release" "envoy_gateway" {
+  name             = "envoy-gateway"
+  repository       = "oci://docker.io/envoyproxy"
+  chart            = "gateway-helm"
+  version          = "v1.1.0"
+  namespace        = "envoy-gateway-system"
+  create_namespace = true
+}
