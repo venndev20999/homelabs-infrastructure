@@ -127,3 +127,39 @@ resource "terraform_data" "metallb_config" {
     command = "kubectl --kubeconfig ${self.input} delete -f ${path.module}/../../../metallb-config.yaml --ignore-not-found"
   }
 }
+
+# ── Create Namespace for Local Path Provisioner ───────────────────────────────
+# The namespace must be explicitly created and labeled as "privileged" because the provisioner helper pods
+# mount node host paths (/opt/local-path-provisioner) to create and manage local persistent directories.
+resource "kubernetes_namespace_v1" "local_path_storage" {
+  metadata {
+    name = "local-path-storage"
+    labels = {
+      "pod-security.kubernetes.io/enforce" = "privileged"
+      "pod-security.kubernetes.io/audit"   = "privileged"
+      "pod-security.kubernetes.io/warn"    = "privileged"
+    }
+  }
+}
+
+# Deploy Rancher Local Path Provisioner via Helm
+resource "helm_release" "local_path_provisioner" {
+  depends_on = [
+    kubernetes_namespace_v1.local_path_storage
+  ]
+
+  name       = "local-path-provisioner"
+  repository = "https://charts.rancher.io"
+  chart      = "local-path-provisioner"
+  version    = "0.0.28"
+  namespace  = "local-path-storage"
+
+  values = [
+    yamlencode({
+      storageClass = {
+        create       = true
+        defaultClass = true
+      }
+    })
+  ]
+}
