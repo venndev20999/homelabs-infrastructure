@@ -10,18 +10,18 @@ terraform {
     }
   }
 
-  # backend "s3" {
-  #   bucket                      = "terraform-state"
-  #   key                         = "k8s/dev/terraform.tfstate"
-  #   region                      = "main"
-  #   endpoint                    = "http://192.168.122.210:9000"
-  #   access_key                  = "minioadmin"
-  #   secret_key                  = "minioadmin"
-  #   skip_credentials_validation = true
-  #   skip_metadata_api_check     = true
-  #   skip_region_validation      = true
-  #   force_path_style            = true
-  # }
+  backend "s3" {
+    bucket                      = "terraform-state"
+    key                         = "k8s/stg/terraform.tfstate"
+    region                      = "main"
+    endpoint                    = "http://192.168.1.223:9000"
+    access_key                  = "vennpham"
+    secret_key                  = "dnquynh#123"
+    skip_credentials_validation = true
+    skip_metadata_api_check     = true
+    skip_region_validation      = true
+    force_path_style            = true
+  }
 }
 
 provider "talos" {}
