@@ -183,6 +183,9 @@ resource "helm_release" "grafana" {
   values = [
     yamlencode({
       adminPassword = "admin"
+      image = {
+        tag = "11.6.11"
+      }
       plugins = [
         "grafana-metricsdrilldown-app",
         "grafana-lokiexplore-app 1.0.37",
