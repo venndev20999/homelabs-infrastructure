@@ -185,12 +185,12 @@ resource "helm_release" "grafana" {
       adminPassword = "admin"
       plugins = [
         "grafana-metricsdrilldown-app",
-        "grafana-logsdrilldown-app",
+        "grafana-lokiexplore-app",
         "grafana-exploretraces-app"
       ]
       "grafana.ini" = {
         plugins = {
-          allow_loading_unsigned_plugins = "grafana-metricsdrilldown-app,grafana-logsdrilldown-app,grafana-exploretraces-app"
+          allow_loading_unsigned_plugins = "grafana-metricsdrilldown-app,grafana-lokiexplore-app,grafana-exploretraces-app"
         }
       }
       persistence = {
