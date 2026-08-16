@@ -39,7 +39,19 @@ data "talos_machine_configuration" "controlplane" {
           }
         }
       })
-    ] : []
+    ] : [],
+    [
+      yamlencode({
+        machine = {
+          kubelet = {
+            extraConfig = {
+              containerLogMaxSize  = "50Mi"
+              containerLogMaxFiles = 5
+            }
+          }
+        }
+      })
+    ]
   )
 }
 
@@ -53,6 +65,19 @@ data "talos_machine_configuration" "worker" {
 
   docs     = false
   examples = false
+
+  config_patches = [
+    yamlencode({
+      machine = {
+        kubelet = {
+          extraConfig = {
+            containerLogMaxSize  = "50Mi"
+            containerLogMaxFiles = 5
+          }
+        }
+      }
+    })
+  ]
 }
 
 # Apply Controlplane Config
