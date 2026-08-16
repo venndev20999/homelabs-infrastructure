@@ -29,9 +29,3 @@ variable "minio_password" {
   default     = "dnquynh#123"
   sensitive   = true
 }
-
-variable "tailscale_auth_key" {
-  type        = string
-  description = "Tailscale Auth Key for subnet router registration"
-  sensitive   = true
-}
