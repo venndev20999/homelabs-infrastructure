@@ -39,7 +39,8 @@ resource "helm_release" "loki" {
           retention_period = "72h"
         }
         compactor = {
-          retention_enabled = true
+          retention_enabled    = true
+          delete_request_store = "s3"
         }
         schemaConfig = {
           configs = [
