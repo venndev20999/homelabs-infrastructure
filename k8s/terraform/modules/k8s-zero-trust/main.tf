@@ -98,8 +98,8 @@ resource "kubernetes_deployment_v1" "tailscale" {
 
       spec {
         service_account_name = kubernetes_service_account_v1.tailscale.metadata[0].name
-        host_network         = true
-        dns_policy           = "ClusterFirstWithHostNet"
+        host_network         = false
+        dns_policy           = "ClusterFirst"
 
         container {
           name  = "tailscale"
