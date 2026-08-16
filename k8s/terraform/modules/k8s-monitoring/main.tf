@@ -273,9 +273,41 @@ resource "helm_release" "alloy" {
               ]
             }
 
-            // Tail log files and extract basic metadata
+            // Extract Kubernetes metadata from pod log file paths
+            discovery.relabel "pod_logs" {
+              targets = local.file_match.pod_logs.targets
+
+              rule {
+                source_labels = ["__path__"]
+                regex         = "^/var/log/pods/([^_]+)_([^_]+)_([^/_]+)/([^/]+)/[0-9]+.log$"
+                target_label  = "namespace"
+                replacement   = "$1"
+              }
+
+              rule {
+                source_labels = ["__path__"]
+                regex         = "^/var/log/pods/([^_]+)_([^_]+)_([^/_]+)/([^/]+)/[0-9]+.log$"
+                target_label  = "pod"
+                replacement   = "$2"
+              }
+
+              rule {
+                source_labels = ["__path__"]
+                regex         = "^/var/log/pods/([^_]+)_([^_]+)_([^/_]+)/([^/]+)/[0-9]+.log$"
+                target_label  = "container"
+                replacement   = "$4"
+              }
+
+              rule {
+                source_labels = ["namespace", "container"]
+                separator     = "/"
+                target_label  = "job"
+              }
+            }
+
+            // Tail log files and forward them to Loki
             loki.source.file "pod_logs" {
-              targets    = local.file_match.pod_logs.targets
+              targets    = discovery.relabel.pod_logs.output
               forward_to = [loki.write.local.receiver]
             }
 
