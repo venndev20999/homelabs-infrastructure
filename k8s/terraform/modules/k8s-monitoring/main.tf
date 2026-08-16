@@ -32,6 +32,9 @@ resource "helm_release" "loki" {
       }
       loki = {
         auth_enabled = false
+        commonConfig = {
+          replication_factor = 1
+        }
         schemaConfig = {
           configs = [
             {
