@@ -32,6 +32,9 @@ resource "helm_release" "loki" {
       }
       loki = {
         auth_enabled = false
+        image = {
+          tag = "3.5.0"
+        }
         commonConfig = {
           replication_factor = 1
         }
