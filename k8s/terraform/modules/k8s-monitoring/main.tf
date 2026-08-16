@@ -183,6 +183,16 @@ resource "helm_release" "grafana" {
   values = [
     yamlencode({
       adminPassword = "admin"
+      plugins = [
+        "grafana-metrics-drilldown-app",
+        "grafana-logs-drilldown-app",
+        "grafana-traces-drilldown-app"
+      ]
+      "grafana.ini" = {
+        plugins = {
+          allow_loading_unsigned_plugins = "grafana-metrics-drilldown-app,grafana-logs-drilldown-app,grafana-traces-drilldown-app"
+        }
+      }
       persistence = {
         enabled = true
         size    = "10Gi"
