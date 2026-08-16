@@ -1,0 +1,139 @@
+---
+- name: Install and Configure Grafana Alloy on Linux Servers
+  hosts: all
+  become: true
+  vars:
+    # Envoy Gateway LoadBalancer IP
+    gateway_ip: "192.168.122.200"
+    # URL of Loki's push API exposed on the Envoy Gateway
+    loki_push_url: "http://loki.vennpham.local/loki/api/v1/push"
+    # URL of Prometheus remote write API exposed on the Envoy Gateway
+    prometheus_remote_write_url: "http://prometheus.vennpham.local/api/v1/write"
+
+  tasks:
+    - name: Ensure Grafana Loki and Prometheus local hostnames map to Envoy Gateway LoadBalancer IP
+      lineinfile:
+        path: /etc/hosts
+        regexp: ".*{{ item }}$"
+        line: "{{ gateway_ip }}  {{ item }}"
+        state: present
+      loop:
+        - loki.vennpham.local
+        - prometheus.vennpham.local
+
+    - name: Ensure prerequisites are installed
+      apt:
+        name:
+          - apt-transport-https
+          - software-properties-common
+          - curl
+          - gpg
+        state: present
+        update_cache: true
+
+    - name: Create apt keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Grafana GPG key
+      get_url:
+        url: https://apt.grafana.com/gpg.key
+        dest: /tmp/grafana.key
+        mode: '0644'
+
+    - name: De-armor Grafana GPG key
+      command: gpg --dearmor --yes -o /etc/apt/keyrings/grafana.gpg /tmp/grafana.key
+      args:
+        creates: /etc/apt/keyrings/grafana.gpg
+
+    - name: Add Grafana stable APT repository
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+        state: present
+        filename: grafana
+
+    - name: Install Grafana Alloy
+      apt:
+        name: alloy
+        state: present
+        update_cache: true
+
+    - name: Configure Grafana Alloy (config.alloy)
+      copy:
+        dest: /etc/alloy/config.alloy
+        mode: '0644'
+        owner: alloy
+        group: alloy
+        content: |
+          // ----------------------------------------------------
+          // 1. Host Metrics Collection (Prometheus)
+          // ----------------------------------------------------
+
+          // Collect Linux host metrics (CPU, RAM, Disk, Net)
+          prometheus.exporter.unix "host" {
+            // Default collectors are enabled automatically
+          }
+
+          // Scrape node metrics
+          prometheus.scrape "host" {
+            targets    = prometheus.exporter.unix.host.targets
+            forward_to = [prometheus.remote_write.local.receiver]
+          }
+
+          // Send metrics to Prometheus Server remote write endpoint
+          prometheus.remote_write "local" {
+            endpoint {
+              url = "{{ prometheus_remote_write_url }}"
+            }
+          }
+
+          // ----------------------------------------------------
+          // 2. System Logs Collection (Loki)
+          // ----------------------------------------------------
+
+          // Match local log files to tail
+          local.file_match "system_logs" {
+            path_targets = [
+              { __path__ = "/var/log/syslog" },
+              { __path__ = "/var/log/auth.log" },
+              { __path__ = "/var/log/**/*.log" },
+            ]
+          }
+
+          // Attach hostname and job labels to logs
+          loki.relabel "add_labels" {
+            forward_to = [loki.write.local.receiver]
+
+            rule {
+              target_label = "instance"
+              replacement  = "{{ inventory_hostname }}"
+            }
+            rule {
+              target_label = "job"
+              replacement  = "system-logs"
+            }
+          }
+
+          // Tail log files and forward to relabel component
+          loki.source.file "system_logs" {
+            targets    = local.file_match.system_logs.targets
+            forward_to = [loki.relabel.add_labels.receiver]
+          }
+
+          // Send logs to Loki push endpoint
+          loki.write "local" {
+            endpoint {
+              url = "{{ loki_push_url }}"
+            }
+          }
+      notify: Restart Alloy Service
+
+  handlers:
+    - name: Restart Alloy Service
+      systemd:
+        name: alloy
+        state: restarted
+        enabled: true
+        daemon_reload: true
