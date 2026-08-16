@@ -35,6 +35,12 @@ resource "helm_release" "loki" {
         commonConfig = {
           replication_factor = 1
         }
+        limits_config = {
+          retention_period = "72h"
+        }
+        compactor = {
+          retention_enabled = true
+        }
         schemaConfig = {
           configs = [
             {
