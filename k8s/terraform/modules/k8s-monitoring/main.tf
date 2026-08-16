@@ -185,7 +185,7 @@ resource "helm_release" "grafana" {
       adminPassword = "admin"
       plugins = [
         "grafana-metricsdrilldown-app",
-        "grafana-lokiexplore-app",
+        "grafana-lokiexplore-app 1.0.37",
         "grafana-exploretraces-app"
       ]
       "grafana.ini" = {
