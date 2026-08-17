@@ -188,6 +188,9 @@ resource "helm_release" "prometheus" {
           size = "10Gi"
         }
         retention = "15d"
+        extraArgs = {
+          "web.enable-remote-write-receiver" = ""
+        }
       }
     })
   ]
