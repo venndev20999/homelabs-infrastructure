@@ -205,13 +205,14 @@ resource "helm_release" "grafana" {
             root_url = "http://grafana.vennpham.local"
           }
           "auth.github" = {
-            enabled               = true
-            allow_sign_up         = true
-            client_id             = var.grafana_github_client_id
-            client_secret         = "$${GF_AUTH_GITHUB_CLIENT_SECRET}"
-            scopes                = "user:email,read:org"
-            role_attribute_path   = "email == '${var.grafana_github_admin_email}' && 'Admin' || 'None'"
-            role_attribute_strict = true
+            enabled                    = true
+            allow_sign_up              = true
+            allow_assign_grafana_admin = true
+            client_id                  = var.grafana_github_client_id
+            client_secret              = "$${GF_AUTH_GITHUB_CLIENT_SECRET}"
+            scopes                     = "user:email,read:org"
+            role_attribute_path        = "email == '${var.grafana_github_admin_email}' && 'GrafanaAdmin' || 'None'"
+            role_attribute_strict      = true
           }
         } : {}
       )
