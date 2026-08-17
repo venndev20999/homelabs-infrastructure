@@ -135,6 +135,28 @@ resource "helm_release" "tempo" {
             }
           }
         }
+        metricsGenerator = {
+          enabled = true
+          config = {
+            storage = {
+              path = "/var/tempo/wal"
+              remote_write = [
+                {
+                  url            = "http://prometheus-server.monitoring.svc.cluster.local/api/v1/write"
+                  send_exemplars = true
+                }
+              ]
+            }
+            processor = {
+              service_graphs = {
+                enabled = true
+              }
+              span_metrics = {
+                enabled = true
+              }
+            }
+          }
+        }
       }
     })
   ]
