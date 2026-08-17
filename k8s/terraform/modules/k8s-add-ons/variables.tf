@@ -14,3 +14,22 @@ variable "kubeconfig_path" {
   type        = string
   description = "Path to the kubeconfig file for the cluster"
 }
+
+variable "github_client_id" {
+  type        = string
+  description = "GitHub OAuth Application Client ID"
+  default     = ""
+}
+
+variable "github_client_secret" {
+  type        = string
+  description = "GitHub OAuth Application Client Secret"
+  default     = ""
+  sensitive   = true
+}
+
+variable "github_admin_user" {
+  type        = string
+  description = "GitHub username to grant admin privileges in ArgoCD"
+  default     = ""
+}

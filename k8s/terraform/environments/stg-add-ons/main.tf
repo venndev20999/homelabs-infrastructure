@@ -3,6 +3,9 @@ module "k8s_add_ons" {
 
   kubeconfig_path       = var.kubeconfig_path
   argocd_admin_password = var.argocd_admin_password
+  github_client_id      = var.github_client_id
+  github_client_secret  = var.github_client_secret
+  github_admin_user     = var.github_admin_user
 }
 
 module "k8s_monitoring" {

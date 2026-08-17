@@ -31,6 +31,28 @@ resource "helm_release" "argocd" {
             # Hashed password for admin user
             argocdAdminPassword = var.argocd_admin_password
           }
+        } : {},
+        var.github_client_id != "" && var.github_client_secret != "" ? {
+          cm = {
+            url = "http://argocd.vennpham.local"
+            "dex.config" = yamlencode({
+              connectors = [
+                {
+                  type = "github"
+                  id   = "github"
+                  name = "GitHub"
+                  config = {
+                    clientID     = var.github_client_id
+                    clientSecret = var.github_client_secret
+                  }
+                }
+              ]
+            })
+          }
+          rbac = {
+            "policy.default" = "role:readonly"
+            "policy.csv"     = var.github_admin_user != "" ? "g, ${var.github_admin_user}, role:admin" : ""
+          }
         } : {}
       )
       controller = {

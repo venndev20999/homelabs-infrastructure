@@ -29,3 +29,22 @@ variable "minio_password" {
   default     = "dnquynh#123"
   sensitive   = true
 }
+
+variable "github_client_id" {
+  type        = string
+  description = "GitHub OAuth Application Client ID"
+  default     = ""
+}
+
+variable "github_client_secret" {
+  type        = string
+  description = "GitHub OAuth Application Client Secret"
+  default     = ""
+  sensitive   = true
+}
+
+variable "github_admin_user" {
+  type        = string
+  description = "GitHub username to grant admin privileges in ArgoCD"
+  default     = "vennpham"
+}
