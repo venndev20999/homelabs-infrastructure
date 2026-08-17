@@ -1,8 +1,211 @@
 ---
-- name: Install and Configure PostgreSQL 18 on target servers
+- name: Install and Configure PostgreSQL 18 with Grafana Alloy monitoring
   hosts: "{{ env | default('all') }}"
   become: true
+  vars:
+    # Envoy Gateway LoadBalancer IP
+    gateway_ip: "192.168.122.200"
+    # URL of Loki's push API exposed on the Envoy Gateway
+    loki_push_url: "http://loki.vennpham.local/loki/api/v1/push"
+    # URL of Prometheus remote write API exposed on the Envoy Gateway
+    prometheus_remote_write_url: "http://prometheus.vennpham.local/api/v1/write"
+
+    # PostgreSQL specific monitoring configuration for Grafana Alloy
+    alloy_config_content: |
+      // ----------------------------------------------------
+      // 1. Host and Postgres Metrics Collection (Prometheus)
+      // ----------------------------------------------------
+
+      // Collect Linux host metrics (CPU, RAM, Disk, Net)
+      prometheus.exporter.unix "host" {
+      }
+
+      // Scrape node metrics
+      prometheus.scrape "host" {
+        targets    = prometheus.exporter.unix.host.targets
+        forward_to = [prometheus.remote_write.local.receiver]
+      }
+
+      // Collect PostgreSQL database metrics
+      prometheus.exporter.postgres "db" {
+        data_source_names = ["postgresql://alloy_monitor:alloy_pass@localhost:5432/postgres?sslmode=disable"]
+      }
+
+      // Scrape PostgreSQL metrics
+      prometheus.scrape "db" {
+        targets    = prometheus.exporter.postgres.db.targets
+        forward_to = [prometheus.remote_write.local.receiver]
+        job_name   = "postgresql-metrics"
+      }
+
+      // Send metrics to Prometheus Server remote write endpoint
+      prometheus.remote_write "local" {
+        endpoint {
+          url = "{{ prometheus_remote_write_url | default('http://prometheus.vennpham.local/api/v1/write') }}"
+        }
+      }
+
+      // ----------------------------------------------------
+      // 2. Logs Collection (Loki)
+      // ----------------------------------------------------
+
+      // Match local system log files to tail
+      local.file_match "system_logs" {
+        path_targets = [
+          { __path__ = "/var/log/syslog" },
+          { __path__ = "/var/log/auth.log" },
+        ]
+      }
+
+      // Match PostgreSQL log files to tail
+      local.file_match "postgres_logs" {
+        path_targets = [
+          { __path__ = "/var/log/postgresql/postgresql-18-main.log" },
+        ]
+      }
+
+      // Attach hostname and job labels to system logs
+      loki.relabel "add_system_labels" {
+        forward_to = [loki.write.local.receiver]
+
+        rule {
+          target_label = "instance"
+          replacement  = "{{ inventory_hostname }}"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "system-logs"
+        }
+      }
+
+      // Attach hostname and job labels to postgres logs
+      loki.relabel "add_postgres_labels" {
+        forward_to = [loki.write.local.receiver]
+
+        rule {
+          target_label = "instance"
+          replacement  = "{{ inventory_hostname }}"
+        }
+        rule {
+          target_label = "job"
+          replacement  = "postgresql-logs"
+        }
+      }
+
+      // Tail system log files and forward to processing
+      loki.source.file "system_logs" {
+        targets    = local.file_match.system_logs.targets
+        forward_to = [loki.process.system_logs_processing.receiver]
+      }
+
+      // Tail postgres log files and forward to processing
+      loki.source.file "postgres_logs" {
+        targets    = local.file_match.postgres_logs.targets
+        forward_to = [loki.process.postgres_logs_processing.receiver]
+      }
+
+      // Process system log lines
+      loki.process "system_logs_processing" {
+        forward_to = [loki.relabel.add_system_labels.receiver]
+
+        stage.regex {
+          expression = "(?:level=(?P<level1>[a-zA-Z]+)|\\b(?P<level2>INF|WRN|ERR|DBG)\\b)"
+        }
+
+        stage.template {
+          source = "level"
+          template = `{% raw %}{{- if .level1 -}}{{.level1}}
+          {{- else if .level2 -}}
+            {{- if eq .level2 "INF" -}}info
+            {{- else if eq .level2 "WRN" -}}warning
+            {{- else if eq .level2 "ERR" -}}error
+            {{- else if eq .level2 "DBG" -}}debug
+            {{- else -}}{{.level2}}
+            {{- end -}}
+          {{- else -}}info
+          {{- end -}}{% endraw %}`
+        }
+
+        stage.labels {
+          values = {
+            level = "level",
+          }
+        }
+      }
+
+      // Process postgres log lines (extract levels like LOG, ERROR, FATAL, WARNING)
+      loki.process "postgres_logs_processing" {
+        forward_to = [loki.relabel.add_postgres_labels.receiver]
+
+        stage.regex {
+          expression = "^(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\w+) \\[(?P<pid>\\d+)\\] (?P<user>\\w+)?@(?P<db>\\w+)? (?P<level>LOG|ERROR|FATAL|WARNING|PANIC|INFO|DETAIL|HINT|STATEMENT):  (?P<message>.*)$"
+        }
+
+        stage.template {
+          source = "extracted_level"
+          template = `{% raw %}{{- if .level -}}
+            {{- if eq .level "LOG" -}}info
+            {{- else if eq .level "PANIC" -}}critical
+            {{- else if eq .level "FATAL" -}}critical
+            {{- else if eq .level "WARNING" -}}warning
+            {{- else if eq .level "DETAIL" -}}info
+            {{- else if eq .level "STATEMENT" -}}info
+            {{- else if eq .level "HINT" -}}info
+            {{- else if eq .level "INFO" -}}info
+            {{- else if eq .level "DEBUG" -}}debug
+            {{- else -}}info
+            {{- end -}}
+          {{- else -}}info
+          {{- end -}}{% endraw %}`
+        }
+
+        stage.labels {
+          values = {
+            level = "extracted_level",
+            db    = "db",
+            user  = "user",
+          }
+        }
+      }
+
+      // Send logs to Loki push endpoint
+      loki.write "local" {
+        endpoint {
+          url = "{{ loki_push_url | default('http://loki.vennpham.local/loki/api/v1/push') }}"
+        }
+      }
 
   tasks:
-    - name: Import PostgreSQL installation tasks
+    - name: 1. Install and Configure PostgreSQL 18
       import_tasks: ../modules/postgres/main.yml
+
+    - name: 2. Install and Configure Grafana Alloy
+      import_tasks: ../modules/alloy/main.yml
+
+    # 3. Post-install tasks to grant log permissions to Alloy
+    - name: Add alloy user to postgres group to allow log reading
+      user:
+        name: alloy
+        groups: postgres
+        append: yes
+
+    - name: Ensure PostgreSQL log directory permissions permit group read
+      file:
+        path: /var/log/postgresql
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0750'
+
+    - name: Ensure PostgreSQL log files have read permissions for postgres group
+      file:
+        path: /var/log/postgresql/postgresql-18-main.log
+        state: file
+        owner: postgres
+        group: postgres
+        mode: '0640'
+
+    - name: Restart Grafana Alloy to apply group permissions and config
+      service:
+        name: alloy
+        state: restarted

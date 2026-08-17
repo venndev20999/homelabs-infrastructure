@@ -51,13 +51,9 @@
     state: present
     update_cache: true
 
-- name: Configure Grafana Alloy (config.alloy)
-  copy:
-    dest: /etc/alloy/config.alloy
-    mode: '0644'
-    owner: alloy
-    group: alloy
-    content: |
+- name: Set default Grafana Alloy configuration content
+  set_fact:
+    default_alloy_config_content: |
       // ----------------------------------------------------
       // 1. Host Metrics Collection (Prometheus)
       // ----------------------------------------------------
@@ -150,6 +146,14 @@
           url = "{{ loki_push_url | default('http://loki.vennpham.local/loki/api/v1/push') }}"
         }
       }
+
+- name: Configure Grafana Alloy (config.alloy)
+  copy:
+    dest: /etc/alloy/config.alloy
+    mode: '0644'
+    owner: alloy
+    group: alloy
+    content: "{{ alloy_config_content | default(default_alloy_config_content) }}"
   register: alloy_config_status
 
 - name: Restart and enable Grafana Alloy service
