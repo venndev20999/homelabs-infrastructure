@@ -1,12 +1,12 @@
 # Default variables (can be overridden via -e)
-vm_prefix: "test"
-vm_ip: "192.168.122.250"
-vm_cpu: 2
-vm_mem: 2048
+vm_prefix: "postgres"
+vm_ip: "192.168.122.30"
+vm_cpu: 4
+vm_mem: 8192
 
 vm_workers:
   - name: "vm-{{ vm_prefix }}"
     ip:   "{{ vm_ip }}"
     memory: "{{ vm_mem }}"
     vcpus:  "{{ vm_cpu }}"
-    disk_size: 30
+    disk_size: 50

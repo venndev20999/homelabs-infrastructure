@@ -55,3 +55,4 @@
     # These now execute securely INSIDE the new VM, not on the localserver
     - import_tasks: ../modules/common/main.yml
     - import_tasks: ../modules/patching/main.yml
+    - import_tasks: ../modules/alloy/main.yml
