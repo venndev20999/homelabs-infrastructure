@@ -1,5 +1,6 @@
 locals {
-  users = yamldecode(file("${path.module}/../../../users.yaml"))
+  argocd_users  = yamldecode(file("${path.module}/../../../argocd-users.yaml"))
+  grafana_users = yamldecode(file("${path.module}/../../../github-users.yaml"))
 }
 
 module "k8s_add_ons" {
@@ -9,8 +10,8 @@ module "k8s_add_ons" {
   argocd_admin_password = var.argocd_admin_password
   github_client_id      = var.github_client_id
   github_client_secret  = var.github_client_secret
-  admin_users           = local.users.admin
-  developer_users       = local.users.developer
+  admin_users           = local.argocd_users.admin
+  developer_users       = local.argocd_users.developer
 }
 
 module "k8s_monitoring" {
@@ -21,8 +22,8 @@ module "k8s_monitoring" {
   minio_password                 = var.minio_password
   grafana_github_client_id       = var.grafana_github_client_id
   grafana_github_client_secret   = var.grafana_github_client_secret
-  grafana_github_admin_users     = local.users.admin
-  grafana_github_developer_users = local.users.developer
+  grafana_github_admin_users     = local.grafana_users.admin
+  grafana_github_developer_users = local.grafana_users.developer
 }
 
 # ── Import Blocks for Pre-existing Namespaces ──────────────────────────────────

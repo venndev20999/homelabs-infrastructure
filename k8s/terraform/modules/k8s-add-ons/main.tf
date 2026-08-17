@@ -53,7 +53,8 @@ resource "helm_release" "argocd" {
             "policy.default" = ""
             "policy.csv" = join("\n", concat(
               [
-                "p, role:readonly, *, get, *, allow"
+                "p, role:readonly, *, get, *, allow",
+                "p, role:readonly, applications, sync, *, allow"
               ],
               [for email in var.admin_users : "g, ${email}, role:admin"],
               [for email in var.developer_users : "g, ${email}, role:readonly"]
