@@ -30,6 +30,6 @@ variable "github_client_secret" {
 
 variable "github_admin_user" {
   type        = string
-  description = "GitHub username to grant admin privileges in ArgoCD"
+  description = "GitHub username or email to grant admin privileges in ArgoCD"
   default     = ""
 }
