@@ -36,24 +36,45 @@ resource "helm_release" "argocd" {
       controller = {
         metrics = {
           enabled = true
-          serviceMonitor = {
-            enabled = true
+          service = {
+            annotations = {
+              "prometheus.io/scrape" = "true"
+              "prometheus.io/port"   = "8082"
+            }
           }
         }
       }
       dex = {
         metrics = {
           enabled = true
+          service = {
+            annotations = {
+              "prometheus.io/scrape" = "true"
+              "prometheus.io/port"   = "5557"
+            }
+          }
         }
       }
       repoServer = {
         metrics = {
           enabled = true
+          service = {
+            annotations = {
+              "prometheus.io/scrape" = "true"
+              "prometheus.io/port"   = "8084"
+            }
+          }
         }
       }
       server = {
         metrics = {
           enabled = true
+          service = {
+            annotations = {
+              "prometheus.io/scrape" = "true"
+              "prometheus.io/port"   = "8083"
+            }
+          }
         }
       }
     })
