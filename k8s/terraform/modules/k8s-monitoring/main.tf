@@ -123,9 +123,7 @@ resource "helm_release" "tempo" {
     yamlencode({
       tempo = {
         auth_enabled = false
-        image = {
-          tag = "2.7.0"
-        }
+        tag          = "2.7.0"
         storage = {
           trace = {
             backend = "s3"
