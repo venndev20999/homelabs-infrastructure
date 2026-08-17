@@ -23,12 +23,13 @@
 
     - name: "Dynamically add the new VM to Ansible inventory"
       add_host:
-        name: "{{ item.name }}"
-        ansible_host: "{{ item.ip }}"
+        name: "{{ item.item.name }}"
+        ansible_host: "{{ item.item.ip }}"
         ansible_user: venn
         ansible_ssh_common_args: '-o ProxyJump=haproxy -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
         groups: newly_created_vms
-      loop: "{{ vm_workers }}"
+      loop: "{{ vm_exists.results }}"
+      when: item.rc != 0
 
 # 2. Second Play: Run SSH tasks ON THE NEW VM directly
 - name: "Configure the newly created VM"
