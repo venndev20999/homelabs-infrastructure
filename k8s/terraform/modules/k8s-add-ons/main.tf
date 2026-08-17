@@ -50,11 +50,14 @@ resource "helm_release" "argocd" {
             })
           }
           rbac = {
-            "policy.default" = "role:readonly"
-            "policy.csv"     = <<-EOT
-              p, role:readonly, *, get, *, allow
-              ${var.github_admin_user != "" ? "g, ${var.github_admin_user}, role:admin" : ""}
-            EOT
+            "policy.default" = ""
+            "policy.csv" = join("\n", concat(
+              [
+                "p, role:readonly, *, get, *, allow"
+              ],
+              [for email in var.admin_users : "g, ${email}, role:admin"],
+              [for email in var.developer_users : "g, ${email}, role:readonly"]
+            ))
           }
         } : {}
       )

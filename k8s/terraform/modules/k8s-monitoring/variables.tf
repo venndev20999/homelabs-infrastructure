@@ -30,8 +30,14 @@ variable "grafana_github_client_secret" {
   sensitive   = true
 }
 
-variable "grafana_github_admin_email" {
-  type        = string
-  description = "GitHub email address authorized to log in as administrator in Grafana"
-  default     = "khoapham.dev20999@gmail.com"
+variable "grafana_github_admin_users" {
+  type        = list(string)
+  description = "List of GitHub emails to grant Admin privileges in Grafana"
+  default     = []
+}
+
+variable "grafana_github_developer_users" {
+  type        = list(string)
+  description = "List of GitHub emails to grant Viewer privileges in Grafana"
+  default     = []
 }

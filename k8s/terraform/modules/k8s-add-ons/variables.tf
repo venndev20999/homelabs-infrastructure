@@ -28,8 +28,14 @@ variable "github_client_secret" {
   sensitive   = true
 }
 
-variable "github_admin_user" {
-  type        = string
-  description = "GitHub username or email to grant admin privileges in ArgoCD"
-  default     = ""
+variable "admin_users" {
+  type        = list(string)
+  description = "List of GitHub emails to grant admin privileges in ArgoCD"
+  default     = []
+}
+
+variable "developer_users" {
+  type        = list(string)
+  description = "List of GitHub emails to grant read-only view privileges in ArgoCD"
+  default     = []
 }

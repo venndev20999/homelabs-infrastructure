@@ -1,0 +1,8 @@
+# List of authorized users and their assigned roles.
+# Add or remove email addresses under the appropriate groups.
+
+admin:
+  - khoapham.dev20999@gmail.com
+
+developer:
+  - minhkhoa20999@gmail.com

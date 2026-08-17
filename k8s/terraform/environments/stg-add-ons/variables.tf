@@ -43,12 +43,6 @@ variable "github_client_secret" {
   sensitive   = true
 }
 
-variable "github_admin_user" {
-  type        = string
-  description = "GitHub username or email to grant admin privileges in ArgoCD"
-  default     = "khoapham.dev20999@gmail.com"
-}
-
 variable "grafana_github_client_id" {
   type        = string
   description = "GitHub OAuth Application Client ID for Grafana"
@@ -60,10 +54,4 @@ variable "grafana_github_client_secret" {
   description = "GitHub OAuth Application Client Secret for Grafana"
   default     = ""
   sensitive   = true
-}
-
-variable "grafana_github_admin_email" {
-  type        = string
-  description = "GitHub email address authorized to log in as administrator in Grafana"
-  default     = "khoapham.dev20999@gmail.com"
 }
