@@ -51,7 +51,10 @@ resource "helm_release" "argocd" {
           }
           rbac = {
             "policy.default" = "role:readonly"
-            "policy.csv"     = var.github_admin_user != "" ? "g, ${var.github_admin_user}, role:admin" : ""
+            "policy.csv"     = <<-EOT
+              p, role:readonly, *, get, *, allow
+              ${var.github_admin_user != "" ? "g, ${var.github_admin_user}, role:admin" : ""}
+            EOT
           }
         } : {}
       )

@@ -222,6 +222,9 @@ resource "helm_release" "grafana" {
           plugins = {
             allow_loading_unsigned_plugins = "grafana-metricsdrilldown-app,grafana-lokiexplore-app,grafana-exploretraces-app"
           }
+          users = {
+            viewers_can_edit = true
+          }
         },
         var.grafana_github_client_id != "" && var.grafana_github_client_secret != "" ? {
           server = {
