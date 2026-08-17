@@ -116,10 +116,41 @@
             }
           }
 
-          // Tail log files and forward to relabel component
+          // Tail log files and forward to processing component
           loki.source.file "system_logs" {
             targets    = local.file_match.system_logs.targets
+            forward_to = [loki.process.logs_processing.receiver]
+          }
+
+          // Process log lines to extract and normalize log level
+          loki.process "logs_processing" {
             forward_to = [loki.relabel.add_labels.receiver]
+
+            // Extract level from common patterns (level=xxx or word boundaries like INF/ERR)
+            stage.regex {
+              expression = "(?:level=(?P<level1>[a-zA-Z]+)|\\b(?P<level2>INF|WRN|ERR|DBG)\\b)"
+            }
+
+             stage.template {
+               source = "level"
+               template = `{% raw %}{{- if .level1 -}}{{.level1}}
+               {{- else if .level2 -}}
+                 {{- if eq .level2 "INF" -}}info
+                 {{- else if eq .level2 "WRN" -}}warning
+                 {{- else if eq .level2 "ERR" -}}error
+                 {{- else if eq .level2 "DBG" -}}debug
+                 {{- else -}}{{.level2}}
+                 {{- end -}}
+               {{- else -}}info
+               {{- end -}}{% endraw %}`
+             }
+
+            // Promote normalized level to a Loki label
+            stage.labels {
+              values = {
+                level = "level",
+              }
+            }
           }
 
           // Send logs to Loki push endpoint

@@ -33,6 +33,29 @@ resource "helm_release" "argocd" {
           }
         } : {}
       )
+      controller = {
+        metrics = {
+          enabled = true
+          serviceMonitor = {
+            enabled = true
+          }
+        }
+      }
+      dex = {
+        metrics = {
+          enabled = true
+        }
+      }
+      repoServer = {
+        metrics = {
+          enabled = true
+        }
+      }
+      server = {
+        metrics = {
+          enabled = true
+        }
+      }
     })
   ]
 }
