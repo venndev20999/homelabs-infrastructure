@@ -1,6 +1,6 @@
 ---
 - name: Install and Configure Grafana Alloy on Linux Servers
-  hosts: all
+  hosts: "{{ env | default('all') }}"
   become: true
   vars:
     # Envoy Gateway LoadBalancer IP

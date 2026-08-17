@@ -28,13 +28,13 @@
 
 - name: "[vm] Configure limits (CPU, RAM, Disk) and ensure running"
   shell: |
-    # Dump XML configuration
-    virsh dumpxml "{{ item.item.name }}" > "/tmp/{{ item.item.name }}.xml"
+    # Dump XML configuration to /root (avoiding sticky-bit /tmp permission constraints)
+    virsh dumpxml "{{ item.item.name }}" > "/root/{{ item.item.name }}.xml"
     
     # Use inline Python to update vCPUs, memory, currentMemory, and CPU topology cores simultaneously
     python3 -c "
     import xml.etree.ElementTree as ET
-    tree = ET.parse('/tmp/{{ item.item.name }}.xml')
+    tree = ET.parse('/root/{{ item.item.name }}.xml')
     root = tree.getroot()
     
     # Update vcpus
@@ -62,22 +62,22 @@
             if 'dies' in topo.attrib:
                 topo.set('dies', '1')
                 
-    tree.write('/tmp/{{ item.item.name }}.xml')
+    tree.write('/root/{{ item.item.name }}.xml')
     "
     
     # Define VM from the modified XML
-    virsh define "/tmp/{{ item.item.name }}.xml"
-    rm "/tmp/{{ item.item.name }}.xml"
+    virsh define "/root/{{ item.item.name }}.xml"
+    rm "/root/{{ item.item.name }}.xml"
     
     # Resize virtual disk image to target disk_size
-    DISK_PATH=\$(virsh domblklist "{{ item.item.name }}" | grep '/' | awk '{print \$2}' | head -n 1)
-    if [ -n "\$DISK_PATH" ]; then
-      qemu-img resize "\$DISK_PATH" "{{ item.item.disk_size }}G"
+    DISK_PATH=$(virsh domblklist "{{ item.item.name }}" | grep '/' | awk '{print $2}' | head -n 1)
+    if [ -n "$DISK_PATH" ]; then
+      qemu-img resize "$DISK_PATH" "{{ item.item.disk_size }}G"
     fi
     
     # Start VM
-    STATE=\$(virsh domstate "{{ item.item.name }}")
-    if [ "\$STATE" != "running" ]; then
+    STATE=$(virsh domstate "{{ item.item.name }}")
+    if [ "$STATE" != "running" ]; then
       virsh start "{{ item.item.name }}"
     fi
   loop: "{{ vm_exists.results }}"
@@ -111,18 +111,19 @@
 
 - name: "[dhcp] Remove existing DHCP entry for MAC (if any)"
   shell: |
-    MAC="{{ item.stdout }}"
-    EXISTING=$(virsh net-dumpxml {{ vm_network }} | grep -i "mac='$MAC'" | sed "s/^\s*//")
+    NAME="{{ item.item.item.name }}"
+    IP="{{ item.item.item.ip }}"
+    EXISTING=$(virsh net-dumpxml {{ vm_network }} | grep -E "name='$NAME'|ip='$IP'" | sed "s/^\s*//")
     if [ -n "$EXISTING" ]; then
       virsh net-update {{ vm_network }} delete ip-dhcp-host \
         --xml "$EXISTING" --live --config
     fi
-  loop: "{{ mac_results.results }}"
+  loop: "{{ mac_results.results | default([]) }}"
   loop_control:
     label: "{{ item.item.item.name }}"
   ignore_errors: yes
   changed_when: false
-  when: not item.skipped | default(false)
+  when: any_vm_cloned
 
 - name: "[dhcp] Register static IP → MAC reservation"
   command: >
@@ -130,11 +131,11 @@
     --xml "<host mac='{{ item.0.stdout }}' name='{{ item.1.item.name }}' ip='{{ item.1.item.ip }}'/>"
     --live --config
   with_together:
-    - "{{ mac_results.results }}"
-    - "{{ vm_exists.results }}"
+    - "{{ mac_results.results | default([]) }}"
+    - "{{ vm_exists.results | default([]) }}"
   loop_control:
     label: "{{ item.1.item.name }} → {{ item.1.item.ip }}"
-  when: not item.0.skipped | default(false)
+  when: any_vm_cloned
 
 - name: "[summary] VM allocation"
   debug:

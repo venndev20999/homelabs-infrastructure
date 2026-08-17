@@ -1,0 +1,8 @@
+---
+- name: Install and Configure PostgreSQL 18 on target servers
+  hosts: "{{ env | default('all') }}"
+  become: true
+
+  tasks:
+    - name: Import PostgreSQL installation tasks
+      import_tasks: ../modules/postgres/main.yml

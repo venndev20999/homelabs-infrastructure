@@ -1,0 +1,57 @@
+---
+# modules/postgres/main.yml
+# Tasks to install and configure PostgreSQL 18 on Ubuntu 24.04 (noble)
+
+- name: Ensure GPG keyrings directory exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download PostgreSQL repository GPG key
+  get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: /etc/apt/keyrings/postgresql.asc
+    mode: '0644'
+
+- name: Add official PostgreSQL APT repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/postgresql.asc] http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+    state: present
+    filename: pgdg
+
+- name: Install PostgreSQL 18 and python3-psycopg2
+  apt:
+    name:
+      - postgresql-18
+      - postgresql-client-18
+      - python3-psycopg2
+    state: present
+    update_cache: yes
+
+- name: Ensure PostgreSQL service is running and enabled
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Configure PostgreSQL to listen on all interfaces
+  lineinfile:
+    path: /etc/postgresql/18/main/postgresql.conf
+    regexp: "^#?listen_addresses =.*"
+    line: "listen_addresses = '*'"
+    state: present
+  register: listen_addr_config
+
+- name: Allow remote SCRAM connections in pg_hba.conf
+  lineinfile:
+    path: /etc/postgresql/18/main/pg_hba.conf
+    line: "host    all             all             0.0.0.0/0               scram-sha-256"
+    state: present
+  register: pg_hba_config
+
+- name: Restart PostgreSQL if configurations were updated
+  service:
+    name: postgresql
+    state: restarted
+  when: listen_addr_config.changed or pg_hba_config.changed
