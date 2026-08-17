@@ -16,3 +16,22 @@ variable "minio_password" {
   default     = "dnquynh#123"
   sensitive   = true
 }
+
+variable "grafana_github_client_id" {
+  type        = string
+  description = "GitHub OAuth Application Client ID for Grafana"
+  default     = ""
+}
+
+variable "grafana_github_client_secret" {
+  type        = string
+  description = "GitHub OAuth Application Client Secret for Grafana"
+  default     = ""
+  sensitive   = true
+}
+
+variable "grafana_github_admin_email" {
+  type        = string
+  description = "GitHub email address authorized to log in as administrator in Grafana"
+  default     = "khoapham.dev20999@gmail.com"
+}

@@ -11,9 +11,12 @@ module "k8s_add_ons" {
 module "k8s_monitoring" {
   source = "../../modules/k8s-monitoring"
 
-  minio_endpoint = var.minio_endpoint
-  minio_user     = var.minio_user
-  minio_password = var.minio_password
+  minio_endpoint               = var.minio_endpoint
+  minio_user                   = var.minio_user
+  minio_password               = var.minio_password
+  grafana_github_client_id     = var.grafana_github_client_id
+  grafana_github_client_secret = var.grafana_github_client_secret
+  grafana_github_admin_email   = var.grafana_github_admin_email
 }
 
 # ── Import Blocks for Pre-existing Namespaces ──────────────────────────────────

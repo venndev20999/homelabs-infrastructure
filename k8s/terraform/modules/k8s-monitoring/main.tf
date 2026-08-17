@@ -194,11 +194,27 @@ resource "helm_release" "grafana" {
         "grafana-lokiexplore-app 1.0.37",
         "grafana-exploretraces-app"
       ]
-      "grafana.ini" = {
-        plugins = {
-          allow_loading_unsigned_plugins = "grafana-metricsdrilldown-app,grafana-lokiexplore-app,grafana-exploretraces-app"
-        }
-      }
+      "grafana.ini" = merge(
+        {
+          plugins = {
+            allow_loading_unsigned_plugins = "grafana-metricsdrilldown-app,grafana-lokiexplore-app,grafana-exploretraces-app"
+          }
+        },
+        var.grafana_github_client_id != "" && var.grafana_github_client_secret != "" ? {
+          server = {
+            root_url = "http://grafana.vennpham.local"
+          }
+          "auth.github" = {
+            enabled               = true
+            allow_sign_up         = true
+            client_id             = var.grafana_github_client_id
+            client_secret         = var.grafana_github_client_secret
+            scopes                = "user:email,read:org"
+            role_attribute_path   = "email == '${var.grafana_github_admin_email}' && 'Admin' || 'None'"
+            role_attribute_strict = true
+          }
+        } : {}
+      )
       persistence = {
         enabled = true
         size    = "10Gi"
