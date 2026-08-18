@@ -55,3 +55,9 @@ variable "grafana_github_client_secret" {
   default     = ""
   sensitive   = true
 }
+
+variable "tailscale_auth_key" {
+  type        = string
+  description = "Tailscale Auth Key for subnet router registration"
+  sensitive   = true
+}

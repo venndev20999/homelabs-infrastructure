@@ -128,3 +128,45 @@
     # Disable IPv6 if not needed (optional — comment out if you use IPv6)
     - { name: 'net.ipv6.conf.all.disable_ipv6',         value: '1' }
     - { name: 'net.ipv6.conf.default.disable_ipv6',     value: '1' }
+
+# ── Log retention limits (1 day or 500MB) ────────────────────────────────────
+- name: "[common] Configure systemd journald log limits"
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  become: yes
+  loop:
+    - { regexp: '^#?SystemMaxUse=', line: 'SystemMaxUse=500M' }
+    - { regexp: '^#?MaxRetentionSec=', line: 'MaxRetentionSec=1day' }
+  register: journald_config
+
+- name: "[common] Restart systemd-journald service"
+  systemd:
+    name: systemd-journald
+    state: restarted
+  become: yes
+  when: journald_config.changed
+
+- name: "[common] Set rsyslog logrotate rotation count to 1"
+  replace:
+    path: /etc/logrotate.d/rsyslog
+    regexp: '^\s*rotate\s+\d+'
+    replace: '\trotate 1'
+  become: yes
+
+- name: "[common] Set rsyslog logrotate frequency to daily"
+  replace:
+    path: /etc/logrotate.d/rsyslog
+    regexp: '^\s*(weekly|monthly|yearly)'
+    replace: '\tdaily'
+  become: yes
+
+- name: "[common] Set rsyslog logrotate maxsize to 500M"
+  lineinfile:
+    path: /etc/logrotate.d/rsyslog
+    insertafter: '^\s*daily'
+    line: '\tmaxsize 500M'
+    state: present
+  become: yes
