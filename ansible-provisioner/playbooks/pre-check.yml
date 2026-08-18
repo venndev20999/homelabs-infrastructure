@@ -2,15 +2,27 @@
 # playbooks/pre-check.yml
 # Pre-checks to ensure the environment is ready for Talos cluster provisioning.
 
+- name: "Check if planned VMs already exist in libvirt"
+  ansible.builtin.command: "virsh dominfo {{ item.name }}"
+  loop: "{{ all_nodes }}"
+  register: vm_existence_check
+  ignore_errors: yes
+  changed_when: false
+
 - name: "Ping planned node IPs to check if they are already active"
   ansible.builtin.command: "ping -c 1 -W 1 {{ item.ip }}"
   loop: "{{ all_nodes }}"
+  loop_control:
+    index_var: idx
   register: ping_check
   ignore_errors: yes
   changed_when: false
+  when: vm_existence_check.results[idx].rc != 0
 
 - name: "Halt if any IP address is already reachable"
   ansible.builtin.fail:
     msg: "The IP {{ item.item.ip }} (planned for {{ item.item.name }}) is already reachable. Please remove the existing node or change the IP configuration to avoid conflicts."
   loop: "{{ ping_check.results }}"
-  when: item.rc == 0
+  when:
+    - not item.skipped | default(false)
+    - item.rc == 0

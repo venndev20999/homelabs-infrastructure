@@ -1,0 +1,36 @@
+# k8s/gha-runner-values.yaml
+# Helm values for gha-runner-scale-set
+
+# The URL of your GitHub Repository or Organization
+githubConfigUrl: "https://github.com/venndev20999/finance-stock"
+
+# The name of the Kubernetes secret containing your GitHub authentication
+# (Can be a Personal Access Token or GitHub App credentials)
+githubConfigSecret: "github-runner-token"
+
+# Name of the runner scale set (used in GitHub Actions YAML as: `runs-on: staging-runner`)
+runnerScaleSetName: "staging-runner"
+
+# Configure the runner pod template
+template:
+  spec:
+    # Pin runner pods to the new 18GB memory node to avoid crashing smaller nodes
+    nodeSelector:
+      kubernetes.io/hostname: "talos-vm-worker-4-stg"
+
+    containers:
+      - name: runner
+        image: "ghcr.io/actions/actions-runner:latest"
+        command: ["/home/runner/run.sh"]
+        # Allocate exactly 2 vCPUs and 16Gi RAM for Rails builds
+        resources:
+          requests:
+            cpu: "2"
+            memory: "16Gi"
+          limits:
+            cpu: "2"
+            memory: "16Gi"
+
+# Optional: Enable Docker-in-Docker (dind) if your Rails build needs to run "docker build"
+# containerMode:
+#   type: "dind"
