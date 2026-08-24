@@ -18,11 +18,6 @@ import {
   id = "staging"
 }
 
-# Auto-import production namespace if it already exists in the cluster
-import {
-  to = kubernetes_namespace_v1.production
-  id = "production"
-}
 
 # Docker registry pull secret in staging namespace
 resource "kubernetes_secret_v1" "ghcr_pull_secret_staging" {
