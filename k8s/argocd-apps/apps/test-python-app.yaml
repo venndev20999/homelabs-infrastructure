@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: test-python-app
+  name: python-test-app
   namespace: argocd
   finalizers:
     # Cascade deletion to remove all deployed resources when this App is deleted
