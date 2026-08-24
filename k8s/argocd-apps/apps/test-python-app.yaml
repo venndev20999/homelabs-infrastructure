@@ -26,8 +26,5 @@ spec:
     
   # SyncPolicy controls automated synchronization and lifecycle
   syncPolicy:
-    automated:
-      prune: true      # Automatically delete resources no longer in git
-      selfHeal: true   # Automatically revert local cluster changes not in git
     syncOptions:
       - CreateNamespace=true  # Auto-create namespace if it does not exist
