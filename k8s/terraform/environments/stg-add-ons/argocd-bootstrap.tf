@@ -9,13 +9,13 @@ resource "kubernetes_secret_v1" "argocd_github_creds" {
     name      = "github-org-creds"
     namespace = "argocd"
     labels = {
-      "argocd.argoproj.io/secret-type" = "repository"
+      "argocd.argoproj.io/secret-type" = "repo-creds"
     }
   }
 
   data = {
     type     = "git"
-    url      = "https://github.com/venndev20999"
+    url      = "https://github.com/venndev20999/"
     username = "venndev20999"
     password = var.github_token
   }
