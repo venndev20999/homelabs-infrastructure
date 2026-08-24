@@ -1,0 +1,33 @@
+# k8s/argocd-apps/apps/test-python-app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: test-python-app
+  namespace: argocd
+  finalizers:
+    # Cascade deletion to remove all deployed resources when this App is deleted
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  # Source defines the repository containing the Helm chart or manifests
+  source:
+    repoURL: "https://github.com/venndev20999/test-python-app.git"
+    targetRevision: main
+    path: helm
+    helm:
+      valueFiles:
+        - ../environments/staging/values.yaml
+    
+  # Destination defines where the application should be deployed
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: staging # Namespace in the cluster to deploy the app
+    
+  # SyncPolicy controls automated synchronization and lifecycle
+  syncPolicy:
+    automated:
+      prune: true      # Automatically delete resources no longer in git
+      selfHeal: true   # Automatically revert local cluster changes not in git
+    syncOptions:
+      - CreateNamespace=true  # Auto-create namespace if it does not exist

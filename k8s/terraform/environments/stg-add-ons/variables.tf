@@ -61,3 +61,15 @@ variable "tailscale_auth_key" {
   description = "Tailscale Auth Key for subnet router registration"
   sensitive   = true
 }
+
+variable "github_runner_token" {
+  type        = string
+  description = "GitHub Personal Access Token (PAT) for Runner registration"
+  sensitive   = true
+}
+
+variable "github_token" {
+  type        = string
+  description = "GitHub Personal Access Token (PAT) for ArgoCD and general Git Access"
+  sensitive   = true
+}

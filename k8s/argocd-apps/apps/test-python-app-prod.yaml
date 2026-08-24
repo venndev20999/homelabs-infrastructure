@@ -1,0 +1,32 @@
+# k8s/argocd-apps/apps/test-python-app-prod.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: test-python-app-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  # Source defines the repository and environment details
+  source:
+    repoURL: "https://github.com/venndev20999/test-python-app.git"
+    targetRevision: main  # Best Practice: You can pin this to a tag like 'v1.0.0' for prod
+    path: helm
+    helm:
+      valueFiles:
+        - ../environments/prod/values.yaml
+    
+  # Destination defines where the application should be deployed
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: production # Deploys to the production namespace
+    
+  # SyncPolicy controls automated synchronization
+  syncPolicy:
+    automated:
+      prune: true      
+      selfHeal: true   
+    syncOptions:
+      - CreateNamespace=true
