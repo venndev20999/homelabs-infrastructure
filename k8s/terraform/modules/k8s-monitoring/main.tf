@@ -129,7 +129,7 @@ resource "helm_release" "tempo" {
             backend = "s3"
             s3 = {
               bucket     = "tempo"
-              endpoint   = var.minio_endpoint
+              endpoint   = replace(replace(var.minio_endpoint, "https://", ""), "http://", "")
               access_key = var.minio_user
               secret_key = var.minio_password
               insecure   = true
