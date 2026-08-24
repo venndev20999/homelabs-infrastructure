@@ -28,35 +28,40 @@ decrypt-secrets:
 	fi
 
 # Staging Environment Targets
-stg-plan:
+stg-plan: decrypt-secrets
 	@cd $(STG_DIR) && \
-	if [ -f ../../../../secrets.enc.yaml ]; then \
-		sops exec-env ../../../../secrets.enc.yaml "terraform plan"; \
+	if [ -f ../../../secrets.dec.yaml ]; then \
+		eval $$(grep -v '^#' ../../../secrets.dec.yaml | grep -v '^$$' | sed -e 's/: /=/' -e 's/^/export /') && \
+		terraform plan; \
 	else \
 		terraform plan; \
 	fi
 
-stg-apply:
+stg-apply: decrypt-secrets
 	@cd $(STG_DIR) && \
-	if [ -f ../../../../secrets.enc.yaml ]; then \
-		sops exec-env ../../../../secrets.enc.yaml "terraform apply"; \
+	if [ -f ../../../secrets.dec.yaml ]; then \
+		eval $$(grep -v '^#' ../../../secrets.dec.yaml | grep -v '^$$' | sed -e 's/: /=/' -e 's/^/export /') && \
+		terraform apply; \
 	else \
 		terraform apply; \
 	fi
 
 # Add-Ons Environment Targets
-addons-plan:
+addons-plan: decrypt-secrets
 	@cd $(ADD_ONS_DIR) && \
-	if [ -f ../../../../secrets.enc.yaml ]; then \
-		sops exec-env ../../../../secrets.enc.yaml "terraform plan"; \
+	if [ -f ../../../secrets.dec.yaml ]; then \
+		eval $$(grep -v '^#' ../../../secrets.dec.yaml | grep -v '^$$' | sed -e 's/: /=/' -e 's/^/export /') && \
+		terraform plan; \
 	else \
 		terraform plan; \
 	fi
 
-addons-apply:
+addons-apply: decrypt-secrets
 	@cd $(ADD_ONS_DIR) && \
-	if [ -f ../../../../secrets.enc.yaml ]; then \
-		sops exec-env ../../../../secrets.enc.yaml "terraform apply"; \
+	if [ -f ../../../secrets.dec.yaml ]; then \
+		eval $$(grep -v '^#' ../../../secrets.dec.yaml | grep -v '^$$' | sed -e 's/: /=/' -e 's/^/export /') && \
+		terraform apply; \
 	else \
 		terraform apply; \
 	fi
+
