@@ -11,7 +11,7 @@ spec:
   
   # Source defines the repository and environment details
   source:
-    repoURL: "https://github.com/venndev20999/test-python-app.git"
+    repoURL: "https://github.com/venndev20999/python-test-app.git"
     targetRevision: main  # Best Practice: You can pin this to a tag like 'v1.0.0' for prod
     path: helm
     helm:
