@@ -13,7 +13,7 @@ spec:
   # Source defines the repository containing the Helm chart or manifests
   source:
     repoURL: "https://github.com/venndev20999/python-test-app.git"
-    targetRevision: main
+    targetRevision: dev
     path: helm
     helm:
       valueFiles:
