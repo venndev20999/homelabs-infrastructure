@@ -63,8 +63,49 @@ resource "helm_release" "clickstack" {
         keeper = {
           spec = {
             replicas = 1
-            nodeSelector = {
-              "kubernetes.io/hostname" = var.clickhouse_node
+            podTemplate = {
+              nodeSelector = {
+                "kubernetes.io/hostname" = var.clickhouse_node
+              }
+              tolerations = [
+                {
+                  key      = "dedicated"
+                  operator = "Equal"
+                  value    = "clickhouse"
+                  effect   = "NoSchedule"
+                }
+              ]
+              securityContext = {
+                fsGroup             = 101
+                fsGroupChangePolicy = "Always"
+              }
+              initContainers = [
+                {
+                  name  = "init-volume-permissions"
+                  image = "busybox:latest"
+                  securityContext = {
+                    runAsUser    = 0
+                    runAsNonRoot = false
+                  }
+                  command = [
+                    "sh",
+                    "-c",
+                    "mkdir -p /var/lib/clickhouse /var/log/clickhouse-keeper && chown -R 101:101 /var/lib/clickhouse /var/log/clickhouse-keeper && chmod -R 775 /var/lib/clickhouse /var/log/clickhouse-keeper"
+                  ]
+                  volumeMounts = [
+                    {
+                      name      = "clickhouse-storage-volume"
+                      mountPath = "/var/lib/clickhouse"
+                      subPath   = "var-lib-clickhouse"
+                    },
+                    {
+                      name      = "clickhouse-storage-volume"
+                      mountPath = "/var/log/clickhouse-keeper"
+                      subPath   = "var-log-clickhouse"
+                    }
+                  ]
+                }
+              ]
             }
             dataVolumeClaimSpec = {
               storageClassName = var.storage_class_name
@@ -81,8 +122,49 @@ resource "helm_release" "clickstack" {
           spec = {
             replicas = 1
             shards   = 1
-            nodeSelector = {
-              "kubernetes.io/hostname" = var.clickhouse_node
+            podTemplate = {
+              nodeSelector = {
+                "kubernetes.io/hostname" = var.clickhouse_node
+              }
+              tolerations = [
+                {
+                  key      = "dedicated"
+                  operator = "Equal"
+                  value    = "clickhouse"
+                  effect   = "NoSchedule"
+                }
+              ]
+              securityContext = {
+                fsGroup             = 101
+                fsGroupChangePolicy = "Always"
+              }
+              initContainers = [
+                {
+                  name  = "init-volume-permissions"
+                  image = "busybox:latest"
+                  securityContext = {
+                    runAsUser    = 0
+                    runAsNonRoot = false
+                  }
+                  command = [
+                    "sh",
+                    "-c",
+                    "mkdir -p /var/lib/clickhouse /var/log/clickhouse-server && chown -R 101:101 /var/lib/clickhouse /var/log/clickhouse-server && chmod -R 775 /var/lib/clickhouse /var/log/clickhouse-server"
+                  ]
+                  volumeMounts = [
+                    {
+                      name      = "clickhouse-storage-volume"
+                      mountPath = "/var/lib/clickhouse"
+                      subPath   = "var-lib-clickhouse"
+                    },
+                    {
+                      name      = "clickhouse-storage-volume"
+                      mountPath = "/var/log/clickhouse-server"
+                      subPath   = "var-log-clickhouse"
+                    }
+                  ]
+                }
+              ]
             }
             dataVolumeClaimSpec = {
               storageClassName = var.storage_class_name
