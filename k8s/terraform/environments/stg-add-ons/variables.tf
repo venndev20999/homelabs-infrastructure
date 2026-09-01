@@ -122,4 +122,12 @@ variable "clickstack_mongodb_password" {
   default     = "MongoSecurePassword2026!"
 }
 
+variable "sops_age_key" {
+  type        = string
+  description = "Age Private Key for ArgoCD SOPS decryption"
+  sensitive   = true
+  default     = "AGE-SECRET-KEY-1WDUQFHXNW7MEEJKCQ29PMFZU9QG9HY49TRAHS3GKEJS8FTSZXYDS3LW0RN"
+}
+
+
 

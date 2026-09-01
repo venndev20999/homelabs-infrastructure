@@ -22,8 +22,26 @@ resource "kubernetes_secret_v1" "argocd_github_creds" {
 
   type = "Opaque"
 }
+# Secret containing the Age Private Key for ArgoCD SOPS decryption
+resource "kubernetes_secret_v1" "sops_age" {
+  depends_on = [
+    module.k8s_add_ons
+  ]
+
+  metadata {
+    name      = "sops-age"
+    namespace = "argocd"
+  }
+
+  data = {
+    "key.txt" = var.sops_age_key
+  }
+
+  type = "Opaque"
+}
 
 # Create the root "App-of-Apps" Bootstrap Application.
+
 # It monitors your path 'k8s/argocd-apps/apps' for any individual application manifests.
 resource "kubernetes_manifest" "root_bootstrap" {
   depends_on = [

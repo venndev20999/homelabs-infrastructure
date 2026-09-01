@@ -9,108 +9,17 @@ metadata:
 spec:
   project: default
 
-  source:
-    chart: clickstack
-    repoURL: "https://clickhouse.github.io/ClickStack-helm-charts"
-    targetRevision: 3.2.0
-    helm:
-      valuesObject:
-        hyperdx:
-          config:
-            FRONTEND_URL: "http://clickstack.vennpham.local"
-            HYPERDX_OTEL_EXPORTER_TABLES_TTL: "168h"
-          secrets:
-            CLICKHOUSE_APP_PASSWORD: "HyperDXSecurePassword2026!"
-            CLICKHOUSE_PASSWORD: "OTelCollectorSecurePass2026!"
-            HYPERDX_API_KEY: "7435873e-b8d4-4565-a7d0-31bf7897aeef"
-            MONGODB_PASSWORD: "MongoSecurePassword2026!"
-
-        clickhouse:
-          enabled: true
-          keeper:
-            cluster:
-              spec:
-                podTemplate:
-                  nodeSelector:
-                    kubernetes.io/hostname: "talos-vm-worker-4-stg"
-                  securityContext:
-                    fsGroup: 101
-                    runAsUser: 101
-                    runAsGroup: 101
-                    runAsNonRoot: true
-                  initContainers:
-                    - name: init-volume-permissions
-                      image: busybox:1.36
-                      command:
-                        - sh
-                        - -c
-                        - "mkdir -p /var/lib/clickhouse /var/log/clickhouse-keeper && chown -R 101:101 /var/lib/clickhouse /var/log/clickhouse-keeper && chmod -R 775 /var/lib/clickhouse"
-                      securityContext:
-                        runAsUser: 0
-                      volumeMounts:
-                        - name: clickhouse-storage-volume-clickstack-keeper-keeper-0-0
-                          mountPath: /var/lib/clickhouse
-                containerTemplate:
-                  securityContext:
-                    runAsUser: 101
-                    runAsGroup: 101
-                    runAsNonRoot: true
-                volumeClaimTemplates:
-                  - name: clickhouse-storage-volume
-                    spec:
-                      storageClassName: "local-path"
-                      accessModes:
-                        - ReadWriteOnce
-                      resources:
-                        requests:
-                          storage: "10Gi"
-
-          cluster:
-            spec:
-              podTemplate:
-                nodeSelector:
-                  kubernetes.io/hostname: "talos-vm-worker-4-stg"
-                securityContext:
-                  fsGroup: 101
-                  runAsUser: 101
-                  runAsGroup: 101
-                  runAsNonRoot: true
-                initContainers:
-                  - name: init-volume-permissions
-                    image: busybox:1.36
-                    command:
-                      - sh
-                      - -c
-                      - "mkdir -p /var/lib/clickhouse /var/log/clickhouse-server && chown -R 101:101 /var/lib/clickhouse /var/log/clickhouse-server && chmod -R 775 /var/lib/clickhouse"
-                    securityContext:
-                      runAsUser: 0
-                    volumeMounts:
-                      - name: clickhouse-storage-volume-clickstack-clickhouse-clickhouse-0-0-0
-                        mountPath: /var/lib/clickhouse
-              containerTemplate:
-                securityContext:
-                  runAsUser: 101
-                  runAsGroup: 101
-                  runAsNonRoot: true
-              volumeClaimTemplates:
-                - name: clickhouse-storage-volume
-                  spec:
-                    storageClassName: "local-path"
-                    accessModes:
-                      - ReadWriteOnce
-                    resources:
-                      requests:
-                        storage: "50Gi"
-
-        mongodb:
-          enabled: true
-
-        otel-collector:
-          enabled: true
-          mode: deployment
-          image:
-            repository: docker.clickhouse.com/clickhouse/clickstack-otel-collector
-            tag: "2.35.0"
+  sources:
+    - chart: clickstack
+      repoURL: "https://clickhouse.github.io/ClickStack-helm-charts"
+      targetRevision: 3.2.0
+      helm:
+        valueFiles:
+          - "$values/k8s/helm/clickstack/values.yaml"
+          - "$values/k8s/helm/clickstack/secrets.enc.yaml"
+    - repoURL: "https://github.com/venndev20999/homelabs-infrastructure.git"
+      targetRevision: dev
+      ref: values
 
   destination:
     server: "https://kubernetes.default.svc"

@@ -94,6 +94,60 @@ resource "helm_release" "argocd" {
             }
           }
         }
+        env = [
+          {
+            name  = "HELM_PLUGINS"
+            value = "/custom-tools/helm-plugins/"
+          },
+          {
+            name  = "HELM_SECRETS_SOPS_PATH"
+            value = "/custom-tools/sops"
+          },
+          {
+            name  = "SOPS_AGE_KEY_FILE"
+            value = "/helm-secrets-private-keys/key.txt"
+          }
+        ]
+        volumes = [
+          {
+            name     = "custom-tools"
+            emptyDir = {}
+          },
+          {
+            name = "helm-secrets-private-keys"
+            secret = {
+              secretName = "sops-age"
+            }
+          }
+        ]
+        volumeMounts = [
+          {
+            name      = "custom-tools"
+            mountPath = "/custom-tools"
+          },
+          {
+            name      = "helm-secrets-private-keys"
+            mountPath = "/helm-secrets-private-keys"
+            readOnly  = true
+          }
+        ]
+        initContainers = [
+          {
+            name            = "download-tools"
+            image           = "ghcr.io/jkroepke/helm-secrets:v4.6.0"
+            imagePullPolicy = "IfNotPresent"
+            command         = ["sh", "-ec"]
+            args = [
+              "mkdir -p /custom-tools/helm-plugins && cp -r /root/.local/share/helm/plugins/* /custom-tools/helm-plugins/ && cp /usr/local/bin/sops /custom-tools/ && cp /usr/local/bin/age* /custom-tools/ || true"
+            ]
+            volumeMounts = [
+              {
+                name      = "custom-tools"
+                mountPath = "/custom-tools"
+              }
+            ]
+          }
+        ]
       }
       server = {
         metrics = {
