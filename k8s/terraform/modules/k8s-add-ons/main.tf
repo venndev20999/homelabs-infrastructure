@@ -139,16 +139,16 @@ resource "terraform_data" "argocd_gateway" {
   input = var.kubeconfig_path
 
   triggers_replace = [
-    filemd5("${path.module}/../../../argocd-gateway.yaml")
+    filemd5("${path.module}/../../../envoy-gateway-routes.yaml")
   ]
 
   provisioner "local-exec" {
-    command = "kubectl --kubeconfig ${var.kubeconfig_path} apply -f ${path.module}/../../../argocd-gateway.yaml"
+    command = "kubectl --kubeconfig ${var.kubeconfig_path} apply -f ${path.module}/../../../envoy-gateway-routes.yaml"
   }
 
   provisioner "local-exec" {
     when    = destroy
-    command = "kubectl --kubeconfig ${self.input} delete -f ${path.module}/../../../argocd-gateway.yaml --ignore-not-found"
+    command = "kubectl --kubeconfig ${self.input} delete -f ${path.module}/../../../envoy-gateway-routes.yaml --ignore-not-found"
   }
 }
 

@@ -116,3 +116,28 @@ spec:
     - name: prometheus-server
       port: 80
 
+---
+# 7. Create the HTTPRoute to route port 80 traffic to ClickStack (HyperDX UI)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: clickstack-route
+  namespace: clickstack
+spec:
+  parentRefs:
+  - name: external-gateway
+    namespace: envoy-gateway-system
+  hostnames:
+  - "clickstack.vennpham.dev"
+  - "clickstack.vennpham.local"
+
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: clickstack-app
+      port: 3000
+
+

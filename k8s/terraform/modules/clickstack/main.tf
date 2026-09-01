@@ -85,3 +85,4 @@ resource "helm_release" "clickstack" {
     })
   ]
 }
+
