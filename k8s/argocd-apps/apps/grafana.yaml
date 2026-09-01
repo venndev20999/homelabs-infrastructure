@@ -29,6 +29,16 @@ spec:
 
         adminPassword: "HyperDXSecurePassword2026!"
 
+        # Disable init-chown-data container and use native Kubernetes fsGroup
+        initChownData:
+          enabled: false
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 472
+          runAsGroup: 472
+          fsGroup: 472
+
         # Pre-install the official Grafana ClickHouse datasource plugin
         plugins:
           - grafana-clickhouse-datasource
