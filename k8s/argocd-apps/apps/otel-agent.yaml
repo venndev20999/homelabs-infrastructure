@@ -1,0 +1,86 @@
+# k8s/argocd-apps/apps/otel-agent.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: otel-agent
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    chart: opentelemetry-collector
+    repoURL: "https://open-telemetry.github.io/opentelemetry-helm-charts"
+    targetRevision: 0.172.0
+    helm:
+      valuesObject:
+        image:
+          repository: "otel/opentelemetry-collector-k8s"
+
+        mode: "daemonset"
+
+        tolerations:
+          - operator: "Exists"
+
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+
+        presets:
+          logsCollection:
+            enabled: true
+          kubernetesAttributes:
+            enabled: true
+          hostMetrics:
+            enabled: true
+          kubeletMetrics:
+            enabled: true
+
+        config:
+          receivers:
+            file_log:
+              start_at: "beginning"
+            kubeletstats:
+              auth_type: "serviceAccount"
+              endpoint: "https://${env:K8S_NODE_IP}:10250"
+              insecure_skip_verify: true
+              metric_groups:
+                - "node"
+                - "pod"
+                - "container"
+                - "volume"
+          exporters:
+            otlp_http:
+              endpoint: "http://clickstack-otel-collector.clickstack.svc.cluster.local:4318"
+              headers:
+                authorization: "7435873e-b8d4-4565-a7d0-31bf7897aeef"
+          service:
+            pipelines:
+              logs:
+                receivers:
+                  - "file_log"
+                processors:
+                  - "memory_limiter"
+                  - "k8s_attributes"
+                  - "batch"
+                exporters:
+                  - "otlp_http"
+              metrics:
+                receivers:
+                  - "hostmetrics"
+                  - "kubeletstats"
+                processors:
+                  - "memory_limiter"
+                  - "k8s_attributes"
+                  - "batch"
+                exporters:
+                  - "otlp_http"
+
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: clickstack
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

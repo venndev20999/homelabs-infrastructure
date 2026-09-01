@@ -1,0 +1,23 @@
+# k8s/argocd-apps/apps/clickstack-operators.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clickstack-operators
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    chart: clickstack-operators
+    repoURL: "https://clickhouse.github.io/ClickStack-helm-charts"
+    targetRevision: 1.1.0
+
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: clickstack
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

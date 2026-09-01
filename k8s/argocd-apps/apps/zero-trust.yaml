@@ -1,0 +1,23 @@
+# k8s/argocd-apps/apps/zero-trust.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zero-trust
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/venndev20999/homelabs-infrastructure.git"
+    targetRevision: dev
+    path: k8s/manifests/zero-trust
+
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: vpn
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

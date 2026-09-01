@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tailscale-subnet-router
+  namespace: vpn
+  labels:
+    app: tailscale-subnet-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tailscale-subnet-router
+  template:
+    metadata:
+      labels:
+        app: tailscale-subnet-router
+    spec:
+      serviceAccountName: tailscale
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      containers:
+        - name: tailscale
+          image: tailscale/tailscale:v1.68.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: tailscale-auth
+                  key: TS_AUTHKEY
+            - name: TS_ROUTES
+              value: "10.244.0.0/16,10.96.0.0/12,192.168.122.0/24"
+            - name: TS_KUBE_SECRET
+              value: "tailscale-state"
+            - name: TS_USERSPACE
+              value: "false"
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            - name: tun
+              mountPath: /dev/net/tun
+      volumes:
+        - name: tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice

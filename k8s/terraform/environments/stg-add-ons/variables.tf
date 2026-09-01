@@ -83,8 +83,8 @@ variable "enable_k8s_monitoring" {
 
 variable "enable_clickstack" {
   type        = bool
-  description = "Toggle to enable/disable ClickHouse & ClickStack observability stack"
-  default     = true
+  description = "Toggle to enable/disable ClickHouse & ClickStack observability stack in Terraform (now managed via ArgoCD)"
+  default     = false
 }
 
 # ── ClickStack Sensitive Credentials (loaded via SOPS secrets.dec.yaml) ────────
