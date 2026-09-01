@@ -116,11 +116,15 @@ resource "helm_release" "argocd" {
         env = [
           {
             name  = "HELM_PLUGINS"
-            value = "/custom-tools/helm-plugins/"
+            value = "/custom-tools/helm-plugins/helm-secrets"
           },
           {
             name  = "HELM_SECRETS_SOPS_PATH"
             value = "/custom-tools/sops"
+          },
+          {
+            name  = "HELM_SECRETS_HELM_PATH"
+            value = "/usr/local/bin/helm"
           },
           {
             name  = "SOPS_AGE_KEY_FILE"
@@ -147,7 +151,7 @@ resource "helm_release" "argocd" {
           {
             name      = "custom-tools"
             subPath   = "helm"
-            mountPath = "/usr/local/bin/helm"
+            mountPath = "/usr/local/sbin/helm"
           },
           {
             name      = "helm-secrets-private-keys"
