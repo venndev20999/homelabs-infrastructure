@@ -43,7 +43,8 @@ resource "helm_release" "clickstack" {
       # ── HyperDX UI & API Engine ──────────────────────────────────────────────
       hyperdx = {
         config = {
-          FRONTEND_URL = var.frontend_url
+          FRONTEND_URL                     = var.frontend_url
+          HYPERDX_OTEL_EXPORTER_TABLES_TTL = var.data_retention_ttl
         }
         secrets = {
           HYPERDX_API_KEY         = var.hyperdx_api_key
@@ -269,9 +270,6 @@ resource "helm_release" "otel_agent" {
         kubeletMetrics = {
           enabled = true
         }
-        kubernetesEvents = {
-          enabled = true
-        }
       }
 
       config = {
@@ -291,7 +289,7 @@ resource "helm_release" "otel_agent" {
         service = {
           pipelines = {
             logs = {
-              receivers  = ["file_log", "k8s_events"]
+              receivers  = ["file_log"]
               processors = ["memory_limiter", "k8s_attributes", "batch"]
               exporters  = ["otlp_http"]
             }

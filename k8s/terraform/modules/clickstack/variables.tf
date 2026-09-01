@@ -56,4 +56,11 @@ variable "mongodb_password" {
   default     = "MongoSecurePassword2026!"
 }
 
+variable "data_retention_ttl" {
+  type        = string
+  description = "Retention period for ClickHouse logs, traces, and metrics (e.g. 168h for 7 days, 336h for 14 days)"
+  default     = "72h"
+}
+
+
 
