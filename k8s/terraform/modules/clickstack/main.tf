@@ -217,3 +217,70 @@ resource "helm_release" "clickstack" {
     })
   ]
 }
+
+# ── 3. Deploy OpenTelemetry Cluster Log Agent (DaemonSet) ──────────────────────
+# Runs on every Kubernetes node, tails /var/log/pods/*, and streams cluster logs to ClickStack
+resource "helm_release" "otel_agent" {
+  depends_on = [
+    helm_release.clickstack
+  ]
+
+  name       = "otel-agent"
+  repository = "https://open-telemetry.github.io/opentelemetry-helm-charts"
+  chart      = "opentelemetry-collector"
+  version    = "0.172.0"
+  namespace  = kubernetes_namespace_v1.clickstack.metadata[0].name
+
+  values = [
+    yamlencode({
+      image = {
+        repository = "otel/opentelemetry-collector-k8s"
+      }
+
+      mode = "daemonset"
+
+      tolerations = [
+        {
+          operator = "Exists"
+        }
+      ]
+
+      presets = {
+        logsCollection = {
+          enabled = true
+        }
+        kubernetesAttributes = {
+          enabled = true
+        }
+        hostMetrics = {
+          enabled = true
+        }
+      }
+
+      config = {
+        exporters = {
+          otlphttp = {
+            endpoint = "http://clickstack-otel-collector.clickstack.svc.cluster.local:4318"
+            headers = {
+              Authorization = var.hyperdx_api_key
+            }
+          }
+        }
+        service = {
+          pipelines = {
+            logs = {
+              receivers  = ["filelog"]
+              processors = ["memory_limiter", "k8sattributes", "batch"]
+              exporters  = ["otlphttp"]
+            }
+            metrics = {
+              receivers  = ["hostmetrics"]
+              processors = ["memory_limiter", "batch"]
+              exporters  = ["otlphttp"]
+            }
+          }
+        }
+      }
+    })
+  ]
+}

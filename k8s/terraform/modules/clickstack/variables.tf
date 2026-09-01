@@ -40,7 +40,7 @@ variable "hyperdx_api_key" {
   type        = string
   description = "API Key for HyperDX ingestion and UI access"
   sensitive   = true
-  default     = "c11c57ac-0001-4000-8000-0123456789ab"
+  default     = "7435873e-b8d4-4565-a7d0-31bf7897aeef"
 }
 
 variable "frontend_url" {
