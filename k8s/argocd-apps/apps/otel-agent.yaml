@@ -17,7 +17,9 @@ spec:
     targetRevision: 0.172.0
     helm:
       valuesObject:
-        extraLabels:
+        additionalLabels:
+          stack: "monitoring"
+        podLabels:
           stack: "monitoring"
 
         image:
