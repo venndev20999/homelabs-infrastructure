@@ -43,7 +43,7 @@ spec:
                 isDefault: true
                 access: proxy
                 jsonData:
-                  server: "clickstack-clickhouse.clickstack.svc.cluster.local"
+                  server: "clickstack-clickhouse-clickhouse-headless.clickstack.svc.cluster.local"
                   port: 8123
                   username: "app"
                   defaultDatabase: "default"
