@@ -39,6 +39,7 @@ module "clickstack" {
   app_user_password   = var.clickstack_app_password
   otel_user_password  = var.clickstack_otel_password
   hyperdx_api_key     = var.clickstack_hyperdx_api_key
+  mongodb_password    = var.clickstack_mongodb_password
 }
 
 # ── Import Blocks for Pre-existing Namespaces ──────────────────────────────────

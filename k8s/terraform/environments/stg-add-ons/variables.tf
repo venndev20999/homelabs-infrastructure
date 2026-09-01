@@ -115,3 +115,11 @@ variable "clickstack_frontend_url" {
   default     = "http://clickstack.vennpham.local"
 }
 
+variable "clickstack_mongodb_password" {
+  type        = string
+  description = "Password for ClickStack MongoDB database user"
+  sensitive   = true
+  default     = "MongoSecurePassword2026!"
+}
+
+

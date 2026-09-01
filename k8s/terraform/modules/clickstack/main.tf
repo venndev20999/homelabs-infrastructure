@@ -5,85 +5,128 @@ resource "kubernetes_namespace_v1" "clickstack" {
   }
 }
 
-# ── Deploy ClickStack via Helm ─────────────────────────────────────────────────
-# ClickStack packages ClickHouse (storage), HyperDX (UI & API), MongoDB, and OpenTelemetry Collector.
-resource "helm_release" "clickstack" {
+# ── 1. Deploy ClickStack Operators (ClickHouse Operator & MongoDB Operator) ────
+# Per official docs (https://clickhouse.com/docs/clickstack/deployment/helm),
+# ClickStack v2.x/v3.x uses a two-phase install. Operators and CRDs are deployed first.
+resource "helm_release" "clickstack_operators" {
   depends_on = [
     kubernetes_namespace_v1.clickstack
   ]
 
+  name       = "clickstack-operators"
+  repository = "https://clickhouse.github.io/ClickStack-helm-charts"
+  chart      = "clickstack-operators"
+  version    = "1.1.0"
+  namespace  = kubernetes_namespace_v1.clickstack.metadata[0].name
+}
+
+# ── 2. Deploy ClickStack (ClickHouseCluster, KeeperCluster, MongoDB, HyperDX, OTel) ──
+resource "helm_release" "clickstack" {
+  depends_on = [
+    helm_release.clickstack_operators
+  ]
+
   name       = "clickstack"
-  repository = "https://hyperdxio.github.io/helm-charts"
+  repository = "https://clickhouse.github.io/ClickStack-helm-charts"
   chart      = "clickstack"
-  version    = "1.1.1"
+  version    = "3.2.0"
   namespace  = kubernetes_namespace_v1.clickstack.metadata[0].name
 
   values = [
     yamlencode({
-      global = {
-        storageClassName = var.storage_class_name
-        keepPVC          = true
-      }
-
-      # ── ClickHouse Database Node ─────────────────────────────────────────────
-      # Pinned strictly to the designated high-memory worker node (talos-vm-worker-4-stg)
-      clickhouse = {
-        enabled = true
-        nodeSelector = {
-          "kubernetes.io/hostname" = var.clickhouse_node
-        }
-        persistence = {
-          enabled  = true
-          dataSize = var.clickhouse_pvc_size
-          logSize  = "5Gi"
-        }
-        resources = {
-          requests = {
-            cpu    = "1"
-            memory = "2Gi"
-          }
-          limits = {
-            cpu    = "4"
-            memory = "8Gi"
-          }
-        }
+      # ── HyperDX UI & API Engine ──────────────────────────────────────────────
+      hyperdx = {
         config = {
-          users = {
-            appUserPassword  = var.app_user_password
-            otelUserPassword = var.otel_user_password
-            otelUserName     = "otelcollector"
-          }
-          clusterCidrs = [
-            "10.0.0.0/8",
-            "172.16.0.0/12",
-            "192.168.0.0/16"
+          FRONTEND_URL = var.frontend_url
+        }
+        secrets = {
+          HYPERDX_API_KEY         = var.hyperdx_api_key
+          CLICKHOUSE_APP_PASSWORD = var.app_user_password
+          CLICKHOUSE_PASSWORD     = var.otel_user_password
+          MONGODB_PASSWORD        = var.mongodb_password
+        }
+        deployment = {
+          env = [
+            {
+              # Enables relative redirects (/search) so both .local and .dev domains work seamlessly
+              name  = "HDX_PREVIEW_INLINE_API"
+              value = "true"
+            }
           ]
         }
       }
 
-      # ── HyperDX UI & API ─────────────────────────────────────────────────────
-      # Allowed to run on any remaining worker node
-      hyperdx = {
-        apiKey      = var.hyperdx_api_key
-        frontendUrl = var.frontend_url
-      }
-
-      # ── MongoDB (HyperDX metadata & settings store) ──────────────────────────
-      # Allowed to run on any remaining worker node
-      mongodb = {
+      # ── ClickHouse Database & Keeper ─────────────────────────────────────────
+      # Pinned strictly to the designated high-memory worker node (talos-vm-worker-4-stg)
+      clickhouse = {
         enabled = true
-        persistence = {
-          enabled  = true
-          dataSize = "10Gi"
+        keeper = {
+          spec = {
+            replicas = 1
+            nodeSelector = {
+              "kubernetes.io/hostname" = var.clickhouse_node
+            }
+            dataVolumeClaimSpec = {
+              storageClassName = var.storage_class_name
+              accessModes      = ["ReadWriteOnce"]
+              resources = {
+                requests = {
+                  storage = "5Gi"
+                }
+              }
+            }
+          }
+        }
+        cluster = {
+          spec = {
+            replicas = 1
+            shards   = 1
+            nodeSelector = {
+              "kubernetes.io/hostname" = var.clickhouse_node
+            }
+            dataVolumeClaimSpec = {
+              storageClassName = var.storage_class_name
+              accessModes      = ["ReadWriteOnce"]
+              resources = {
+                requests = {
+                  storage = var.clickhouse_pvc_size # 50Gi
+                }
+              }
+            }
+            containerTemplate = {
+              image = {
+                repository = "clickhouse/clickhouse-server"
+                tag        = "25.7-alpine"
+              }
+              resources = {
+                requests = {
+                  cpu    = "1"
+                  memory = "2Gi"
+                }
+                limits = {
+                  cpu    = "4"
+                  memory = "8Gi"
+                }
+              }
+            }
+          }
         }
       }
 
-      # ── OpenTelemetry Ingestion Collector ────────────────────────────────────
-      # Receives OTLP traces (4317 gRPC, 4318 HTTP) and writes directly to ClickHouse
-      otel = {
-        replicas = 1
+      # ── MongoDB Community Instance ───────────────────────────────────────────
+      mongodb = {
+        enabled = true
+      }
+
+      # ── OpenTelemetry Collector ──────────────────────────────────────────────
+      otel-collector = {
+        enabled = true
+        mode    = "deployment"
+        image = {
+          repository = "docker.clickhouse.com/clickhouse/clickstack-otel-collector"
+          tag        = "2.35.0"
+        }
       }
     })
   ]
 }
-
