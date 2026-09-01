@@ -1,0 +1,23 @@
+# k8s/argocd-apps/apps/envoy-routes.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: envoy-routes
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/venndev20999/homelabs-infrastructure.git"
+    targetRevision: dev
+    path: k8s/manifests/envoy-gateway
+
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: envoy-gateway-system
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

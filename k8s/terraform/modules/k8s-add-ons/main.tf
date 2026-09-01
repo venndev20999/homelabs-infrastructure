@@ -219,28 +219,6 @@ resource "helm_release" "envoy_gateway" {
   namespace  = "envoy-gateway-system"
 }
 
-# Apply Envoy Gateway Configuration (GatewayClass, Gateway, HTTPRoute)
-resource "terraform_data" "argocd_gateway" {
-  depends_on = [
-    helm_release.envoy_gateway
-  ]
-
-  input = var.kubeconfig_path
-
-  triggers_replace = [
-    filemd5("${path.module}/../../../envoy-gateway-routes.yaml")
-  ]
-
-  provisioner "local-exec" {
-    command = "kubectl --kubeconfig ${var.kubeconfig_path} apply -f ${path.module}/../../../envoy-gateway-routes.yaml"
-  }
-
-  provisioner "local-exec" {
-    when    = destroy
-    command = "kubectl --kubeconfig ${self.input} delete -f ${path.module}/../../../envoy-gateway-routes.yaml --ignore-not-found"
-  }
-}
-
 # ── Create Namespace for MetalLB ──────────────────────────────────────────────
 # The namespace must be explicitly created and labeled as "privileged" to satisfy PodSecurity standards,
 # as MetalLB speaker pods run hostNetwork, hostPorts, and require capabilities like NET_ADMIN.
