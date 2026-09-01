@@ -266,6 +266,12 @@ resource "helm_release" "otel_agent" {
         hostMetrics = {
           enabled = true
         }
+        kubeletMetrics = {
+          enabled = true
+        }
+        kubernetesEvents = {
+          enabled = true
+        }
       }
 
       config = {
@@ -285,13 +291,13 @@ resource "helm_release" "otel_agent" {
         service = {
           pipelines = {
             logs = {
-              receivers  = ["file_log"]
+              receivers  = ["file_log", "k8s_events"]
               processors = ["memory_limiter", "k8s_attributes", "batch"]
               exporters  = ["otlp_http"]
             }
             metrics = {
-              receivers  = ["hostmetrics"]
-              processors = ["memory_limiter", "batch"]
+              receivers  = ["hostmetrics", "kubeletstats"]
+              processors = ["memory_limiter", "k8s_attributes", "batch"]
               exporters  = ["otlp_http"]
             }
           }
