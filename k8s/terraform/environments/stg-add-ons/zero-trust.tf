@@ -13,3 +13,9 @@ resource "kubernetes_secret_v1" "tailscale_auth" {
   type = "Opaque"
 }
 
+import {
+  to = kubernetes_secret_v1.tailscale_auth
+  id = "vpn/tailscale-auth"
+}
+
+
