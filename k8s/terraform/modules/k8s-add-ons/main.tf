@@ -145,6 +145,11 @@ resource "helm_release" "argocd" {
             mountPath = "/custom-tools"
           },
           {
+            name      = "custom-tools"
+            subPath   = "helm"
+            mountPath = "/usr/local/bin/helm"
+          },
+          {
             name      = "helm-secrets-private-keys"
             mountPath = "/helm-secrets-private-keys"
             readOnly  = true
@@ -153,11 +158,18 @@ resource "helm_release" "argocd" {
         initContainers = [
           {
             name            = "download-tools"
-            image           = "ghcr.io/jkroepke/helm-secrets:v4.6.0"
+            image           = "alpine:3.20"
             imagePullPolicy = "IfNotPresent"
             command         = ["sh", "-ec"]
             args = [
-              "mkdir -p /custom-tools/helm-plugins && cp -r /root/.local/share/helm/plugins/* /custom-tools/helm-plugins/ && cp /usr/local/bin/sops /custom-tools/ && cp /usr/local/bin/age* /custom-tools/ || true"
+              <<-EOT
+              mkdir -p /custom-tools/helm-plugins
+              wget -O /custom-tools/sops https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64
+              chmod +x /custom-tools/sops
+              wget -qO- https://github.com/jkroepke/helm-secrets/releases/download/v4.6.0/helm-secrets.tar.gz | tar -C /custom-tools/helm-plugins -xzf-
+              cp /custom-tools/helm-plugins/helm-secrets/scripts/wrapper/helm.sh /custom-tools/helm
+              chmod +x /custom-tools/helm
+              EOT
             ]
             volumeMounts = [
               {
