@@ -61,6 +61,3 @@ variable "data_retention_ttl" {
   description = "Retention period for ClickHouse logs, traces, and metrics (e.g. 168h for 7 days, 336h for 14 days)"
   default     = "72h"
 }
-
-
-

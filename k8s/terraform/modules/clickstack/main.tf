@@ -277,6 +277,17 @@ resource "helm_release" "otel_agent" {
           file_log = {
             start_at = "beginning"
           }
+          kubeletstats = {
+            auth_type            = "serviceAccount"
+            endpoint             = "https://$${env:K8S_NODE_IP}:10250"
+            insecure_skip_verify = true
+            metric_groups = [
+              "node",
+              "pod",
+              "container",
+              "volume"
+            ]
+          }
         }
         exporters = {
           otlp_http = {
