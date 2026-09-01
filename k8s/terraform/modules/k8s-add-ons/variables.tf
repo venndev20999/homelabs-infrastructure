@@ -39,3 +39,11 @@ variable "developer_users" {
   description = "List of GitHub emails to grant read-only view privileges in ArgoCD"
   default     = []
 }
+
+variable "sops_age_key" {
+  type        = string
+  description = "Age Private Key for ArgoCD SOPS decryption"
+  sensitive   = true
+  default     = "AGE-SECRET-KEY-1WDUQFHXNW7MEEJKCQ29PMFZU9QG9HY49TRAHS3GKEJS8FTSZXYDS3LW0RN"
+}
+

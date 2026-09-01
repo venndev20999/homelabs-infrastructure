@@ -12,6 +12,7 @@ module "k8s_add_ons" {
   github_client_secret  = var.github_client_secret
   admin_users           = local.argocd_users.admin
   developer_users       = local.argocd_users.developer
+  sops_age_key          = var.sops_age_key
 }
 
 module "k8s_monitoring" {

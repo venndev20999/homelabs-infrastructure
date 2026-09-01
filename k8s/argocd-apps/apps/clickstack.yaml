@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: clickstack
   namespace: argocd
+  labels:
+    stack: monitoring
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

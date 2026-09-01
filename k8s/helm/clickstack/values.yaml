@@ -1,7 +1,21 @@
+global:
+  commonLabels:
+    stack: monitoring
+  labels:
+    stack: monitoring
+
+commonLabels:
+  stack: monitoring
+
 hyperdx:
   config:
     FRONTEND_URL: "http://clickstack.vennpham.local"
     HYPERDX_OTEL_EXPORTER_TABLES_TTL: "168h"
+  deployment:
+    labels:
+      stack: monitoring
+    podLabels:
+      stack: monitoring
 
 clickhouse:
   enabled: true
@@ -11,6 +25,8 @@ clickhouse:
         podTemplate:
           nodeSelector:
             kubernetes.io/hostname: "talos-vm-worker-4-stg"
+          labels:
+            stack: monitoring
           securityContext:
             fsGroup: 101
             runAsUser: 101
@@ -48,6 +64,8 @@ clickhouse:
       podTemplate:
         nodeSelector:
           kubernetes.io/hostname: "talos-vm-worker-4-stg"
+        labels:
+          stack: monitoring
         securityContext:
           fsGroup: 101
           runAsUser: 101
@@ -86,6 +104,10 @@ mongodb:
 otel-collector:
   enabled: true
   mode: deployment
+  labels:
+    stack: monitoring
+  podLabels:
+    stack: monitoring
   image:
     repository: docker.clickhouse.com/clickhouse/clickstack-otel-collector
     tag: "2.35.0"

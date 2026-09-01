@@ -4,6 +4,8 @@ kind: Application
 metadata:
   name: otel-agent
   namespace: argocd
+  labels:
+    stack: monitoring
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -15,6 +17,9 @@ spec:
     targetRevision: 0.172.0
     helm:
       valuesObject:
+        extraLabels:
+          stack: "monitoring"
+
         image:
           repository: "otel/opentelemetry-collector-k8s"
 

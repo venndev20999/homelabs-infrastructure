@@ -3,6 +3,7 @@ resource "kubernetes_namespace_v1" "clickstack" {
   metadata {
     name = var.namespace
     labels = {
+      "stack"                              = "monitoring"
       # Privileged PodSecurity profile allows OTel Collector DaemonSet to mount hostPath (/var/log/pods) for log scraping
       "pod-security.kubernetes.io/enforce" = "privileged"
       "pod-security.kubernetes.io/audit"   = "privileged"

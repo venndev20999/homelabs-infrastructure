@@ -5,10 +5,29 @@ resource "kubernetes_namespace_v1" "argocd" {
   }
 }
 
+# Secret containing the Age Private Key for ArgoCD SOPS decryption
+resource "kubernetes_secret_v1" "sops_age" {
+  depends_on = [
+    kubernetes_namespace_v1.argocd
+  ]
+
+  metadata {
+    name      = "sops-age"
+    namespace = kubernetes_namespace_v1.argocd.metadata[0].name
+  }
+
+  data = {
+    "key.txt" = var.sops_age_key
+  }
+
+  type = "Opaque"
+}
+
 # Deploy ArgoCD via Helm
 resource "helm_release" "argocd" {
   depends_on = [
-    kubernetes_namespace_v1.argocd
+    kubernetes_namespace_v1.argocd,
+    kubernetes_secret_v1.sops_age
   ]
 
   name             = "argocd"
