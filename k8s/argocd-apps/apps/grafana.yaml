@@ -1,0 +1,65 @@
+# k8s/argocd-apps/apps/grafana.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  labels:
+    stack: monitoring
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    chart: grafana
+    repoURL: "https://grafana.github.io/helm-charts"
+    targetRevision: 10.5.15
+    helm:
+      valuesObject:
+        replicas: 1
+
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+
+        adminPassword: "HyperDXSecurePassword2026!"
+
+        # Pre-install the official Grafana ClickHouse datasource plugin
+        plugins:
+          - grafana-clickhouse-datasource
+
+        # Automatically provision ClickHouse Datasource
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: ClickHouse
+                type: grafana-clickhouse-datasource
+                isDefault: true
+                access: proxy
+                jsonData:
+                  server: "clickstack-clickhouse.clickstack.svc.cluster.local"
+                  port: 8123
+                  username: "app"
+                  defaultDatabase: "default"
+                  tlsSkipVerify: true
+                secureJsonData:
+                  password: "HyperDXSecurePassword2026!"
+
+        persistence:
+          enabled: true
+          storageClassName: "local-path"
+          size: "2Gi"
+
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: monitoring
+
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
