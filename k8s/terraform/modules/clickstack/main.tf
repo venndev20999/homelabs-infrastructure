@@ -63,6 +63,12 @@ resource "helm_release" "clickstack" {
         keeper = {
           spec = {
             replicas = 1
+            containerTemplate = {
+              securityContext = {
+                runAsUser  = 101
+                runAsGroup = 101
+              }
+            }
             podTemplate = {
               nodeSelector = {
                 "kubernetes.io/hostname" = var.clickhouse_node
@@ -76,6 +82,8 @@ resource "helm_release" "clickstack" {
                 }
               ]
               securityContext = {
+                runAsUser           = 101
+                runAsGroup          = 101
                 fsGroup             = 101
                 fsGroupChangePolicy = "Always"
               }
@@ -122,6 +130,26 @@ resource "helm_release" "clickstack" {
           spec = {
             replicas = 1
             shards   = 1
+            containerTemplate = {
+              image = {
+                repository = "clickhouse/clickhouse-server"
+                tag        = "25.7-alpine"
+              }
+              securityContext = {
+                runAsUser  = 101
+                runAsGroup = 101
+              }
+              resources = {
+                requests = {
+                  cpu    = "1"
+                  memory = "2Gi"
+                }
+                limits = {
+                  cpu    = "4"
+                  memory = "8Gi"
+                }
+              }
+            }
             podTemplate = {
               nodeSelector = {
                 "kubernetes.io/hostname" = var.clickhouse_node
@@ -135,6 +163,8 @@ resource "helm_release" "clickstack" {
                 }
               ]
               securityContext = {
+                runAsUser           = 101
+                runAsGroup          = 101
                 fsGroup             = 101
                 fsGroupChangePolicy = "Always"
               }
@@ -172,22 +202,6 @@ resource "helm_release" "clickstack" {
               resources = {
                 requests = {
                   storage = var.clickhouse_pvc_size # 50Gi
-                }
-              }
-            }
-            containerTemplate = {
-              image = {
-                repository = "clickhouse/clickhouse-server"
-                tag        = "25.7-alpine"
-              }
-              resources = {
-                requests = {
-                  cpu    = "1"
-                  memory = "2Gi"
-                }
-                limits = {
-                  cpu    = "4"
-                  memory = "8Gi"
                 }
               }
             }
