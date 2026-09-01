@@ -45,15 +45,6 @@ resource "helm_release" "clickstack" {
           CLICKHOUSE_PASSWORD     = var.otel_user_password
           MONGODB_PASSWORD        = var.mongodb_password
         }
-        deployment = {
-          env = [
-            {
-              # Enables relative redirects (/search) so both .local and .dev domains work seamlessly
-              name  = "HDX_PREVIEW_INLINE_API"
-              value = "true"
-            }
-          ]
-        }
       }
 
       # ── ClickHouse Database & Keeper ─────────────────────────────────────────
