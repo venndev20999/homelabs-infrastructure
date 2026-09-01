@@ -42,3 +42,10 @@ variable "hyperdx_api_key" {
   sensitive   = true
   default     = "c11c57ac-0001-4000-8000-0123456789ab"
 }
+
+variable "frontend_url" {
+  type        = string
+  description = "The external URL used to access the HyperDX frontend (e.g. http://clickstack.vennpham.local)"
+  default     = "http://clickstack.vennpham.local"
+}
+

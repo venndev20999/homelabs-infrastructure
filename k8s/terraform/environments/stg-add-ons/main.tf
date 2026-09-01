@@ -35,6 +35,7 @@ module "clickstack" {
   clickhouse_node     = "talos-vm-worker-4-stg"
   clickhouse_pvc_size = "50Gi"
   storage_class_name  = "local-path"
+  frontend_url        = var.clickstack_frontend_url
   app_user_password   = var.clickstack_app_password
   otel_user_password  = var.clickstack_otel_password
   hyperdx_api_key     = var.clickstack_hyperdx_api_key

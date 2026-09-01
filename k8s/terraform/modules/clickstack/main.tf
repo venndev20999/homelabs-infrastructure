@@ -64,7 +64,8 @@ resource "helm_release" "clickstack" {
       # ── HyperDX UI & API ─────────────────────────────────────────────────────
       # Allowed to run on any remaining worker node
       hyperdx = {
-        apiKey = var.hyperdx_api_key
+        apiKey      = var.hyperdx_api_key
+        frontendUrl = var.frontend_url
       }
 
       # ── MongoDB (HyperDX metadata & settings store) ──────────────────────────
