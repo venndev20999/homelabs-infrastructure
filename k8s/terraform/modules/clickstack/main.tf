@@ -251,6 +251,11 @@ resource "helm_release" "otel_agent" {
         }
       ]
 
+      securityContext = {
+        runAsUser  = 0
+        runAsGroup = 0
+      }
+
       presets = {
         logsCollection = {
           enabled = true
@@ -265,12 +270,12 @@ resource "helm_release" "otel_agent" {
 
       config = {
         receivers = {
-          filelog = {
+          file_log = {
             start_at = "beginning"
           }
         }
         exporters = {
-          otlphttp = {
+          otlp_http = {
             endpoint = "http://clickstack-otel-collector.clickstack.svc.cluster.local:4318"
             headers = {
               authorization = var.hyperdx_api_key
@@ -280,14 +285,14 @@ resource "helm_release" "otel_agent" {
         service = {
           pipelines = {
             logs = {
-              receivers  = ["filelog"]
-              processors = ["memory_limiter", "k8sattributes", "batch"]
-              exporters  = ["otlphttp"]
+              receivers  = ["file_log"]
+              processors = ["memory_limiter", "k8s_attributes", "batch"]
+              exporters  = ["otlp_http"]
             }
             metrics = {
               receivers  = ["hostmetrics"]
               processors = ["memory_limiter", "batch"]
-              exporters  = ["otlphttp"]
+              exporters  = ["otlp_http"]
             }
           }
         }
