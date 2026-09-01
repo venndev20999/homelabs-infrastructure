@@ -15,6 +15,7 @@ module "k8s_add_ons" {
 }
 
 module "k8s_monitoring" {
+  count  = var.enable_k8s_monitoring ? 1 : 0
   source = "../../modules/k8s-monitoring"
 
   minio_endpoint                 = var.minio_endpoint
@@ -24,6 +25,19 @@ module "k8s_monitoring" {
   grafana_github_client_secret   = var.grafana_github_client_secret
   grafana_github_admin_users     = local.grafana_users.admin
   grafana_github_developer_users = local.grafana_users.developer
+}
+
+# ── ClickStack Observability Module (ClickHouse, HyperDX, OTel) ────────────────
+module "clickstack" {
+  count  = var.enable_clickstack ? 1 : 0
+  source = "../../modules/clickstack"
+
+  clickhouse_node     = "talos-vm-worker-4-stg"
+  clickhouse_pvc_size = "50Gi"
+  storage_class_name  = "local-path"
+  app_user_password   = var.clickstack_app_password
+  otel_user_password  = var.clickstack_otel_password
+  hyperdx_api_key     = var.clickstack_hyperdx_api_key
 }
 
 # ── Import Blocks for Pre-existing Namespaces ──────────────────────────────────
@@ -44,10 +58,11 @@ import {
   id = "metallb-system"
 }
 
-import {
-  to = module.k8s_monitoring.kubernetes_namespace_v1.monitoring
-  id = "monitoring"
-}
+# (Commented while enable_k8s_monitoring is false to prevent import target errors)
+# import {
+#   to = module.k8s_monitoring[0].kubernetes_namespace_v1.monitoring
+#   id = "monitoring"
+# }
 
 # ── Import Blocks for Pre-existing Helm Releases ───────────────────────────────
 # This instructs Terraform to adopt the existing Helm releases inside the cluster
@@ -67,17 +82,19 @@ import {
   id = "metallb-system/metallb"
 }
 
-import {
-  to = module.k8s_monitoring.helm_release.loki
-  id = "monitoring/loki"
-}
+# (Commented while enable_k8s_monitoring is false to prevent import target errors)
+# import {
+#   to = module.k8s_monitoring[0].helm_release.loki
+#   id = "monitoring/loki"
+# }
+# 
+# import {
+#   to = module.k8s_monitoring[0].helm_release.tempo
+#   id = "monitoring/tempo"
+# }
+# 
+# import {
+#   to = module.k8s_monitoring[0].helm_release.prometheus
+#   id = "monitoring/prometheus"
+# }
 
-import {
-  to = module.k8s_monitoring.helm_release.tempo
-  id = "monitoring/tempo"
-}
-
-import {
-  to = module.k8s_monitoring.helm_release.prometheus
-  id = "monitoring/prometheus"
-}

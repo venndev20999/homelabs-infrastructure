@@ -73,3 +73,38 @@ variable "github_token" {
   description = "GitHub Personal Access Token (PAT) for ArgoCD and general Git Access"
   sensitive   = true
 }
+
+# ── Observability & Monitoring Toggles ─────────────────────────────────────────
+variable "enable_k8s_monitoring" {
+  type        = bool
+  description = "Toggle to enable/disable LGTM stack (Loki, Grafana, Tempo, Prometheus, Alloy)"
+  default     = false
+}
+
+variable "enable_clickstack" {
+  type        = bool
+  description = "Toggle to enable/disable ClickHouse & ClickStack observability stack"
+  default     = true
+}
+
+# ── ClickStack Sensitive Credentials (loaded via SOPS secrets.dec.yaml) ────────
+variable "clickstack_app_password" {
+  type        = string
+  description = "Password for ClickHouse HyperDX application user"
+  sensitive   = true
+  default     = "HyperDXSecurePassword2026!"
+}
+
+variable "clickstack_otel_password" {
+  type        = string
+  description = "Password for ClickHouse OpenTelemetry collector user"
+  sensitive   = true
+  default     = "OTelCollectorSecurePass2026!"
+}
+
+variable "clickstack_hyperdx_api_key" {
+  type        = string
+  description = "API Key for HyperDX ingestion and UI access"
+  sensitive   = true
+  default     = "c11c57ac-0001-4000-8000-0123456789ab"
+}
